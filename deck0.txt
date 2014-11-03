@@ -1,0 +1,5 @@
+[ 
+MinionCard [] 6 7 False Nothing,
+MinionCard [OnPlay [Choose [] [Health Relative (-1)]]] 4 5 False Nothing,
+MinionCard [OnPlay [DrawCard]] 2 4 False Nothing
+]

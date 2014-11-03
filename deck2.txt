@@ -1,0 +1,11 @@
+[ ("Boulderfist Ogre2"
+, 0
+, MinionCard [] 6 7 False Nothing),
+
+("Elven Archer2"
+, 1
+, MinionCard [OnPlay [Choose [] [Health Relative (-1)]]] 4 5 False Nothing),
+
+("Gnomish Inventor2"
+, 2
+, MinionCard [OnPlay [DrawCard]] 2 4 False Nothing)]
