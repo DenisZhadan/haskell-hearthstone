@@ -1,11 +1,14 @@
 module Hearthstone where
 
-import System.IO
-import Data.Array
+--import System.IO
+--import Data.Array
+--import Data.Char
+--import Data.Maybe
+--import Control.Monad
 
 {-
 Denis Zhadan
-2014-11-03
+2014-11-05
 -}
 
 -- structure of file 
@@ -68,24 +71,24 @@ data Filter = AnyCreature     -- olendid
             deriving (Show, Eq, Ord, Read)
 
 readDeck name 
-  = readFile name 
-
-
-readAndIndex fileName 
-  = do
-    text <- readFile fileName
-    return text
-
-toDeck a
-  = read a :: [CardType]
-
-  
-readFromFile
-  = do
-    text <- readFile "deck0.txt"
-    let content = text
+  = do 
+    x <- readFile name
+    let y = read x :: File
+    let z = length y
+    --putStrLn ((show.head) y)
+    --putStrLn ((show.length) y)
+    --if z > 0 
+    --then putStrLn (show (z))
+    --else putStrLn "Null" 
+    return y
+ 
+--readFromFile
+--  = do
+    --content <- toDeck text
+    --let content = text
     --putStr text
-    return content
+    --return content
+    --    return text 
     --y <- (read (content :: Char) :: [CardType])
     --a <- (readFile "deck0.txt") :: IO [Char]
     --let a = "[MinionCard [] 6 7 False Nothing,MinionCard [OnPlay [Choose [] [Health Relative (-1)]]] 4 5 False Nothing,MinionCard [OnPlay [DrawCard]] 2 4 False Nothing]" 
@@ -94,13 +97,10 @@ readFromFile
     --b <- read c :: [CardType]
     --return b
 
-readDeck3 name 
-  = do
-    content <- readFile name
-    return (read content :: [CardType]) 
 
---main = do
---    content <- readFile "deck1.txt"
+--main 
+--d  = do
+    --content <- readFile "deck1.txt"
     --length content
 
     
