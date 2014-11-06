@@ -17,6 +17,8 @@ type Card = (Name, Cost, CardType)
 type Name = String
 type Cost = Int
 
+type CardInGame = (Name, Cost, CardType, Color, HealthPoint, AttackPoint, IsTaunt) 
+
 -- on kahte tüüpi kaarte: olendid ja loitsud
 type Deck = [CardType]
 data CardType = MinionCard [Effect] HealthPoint AttackPoint IsTaunt (Maybe MinionType)
@@ -30,6 +32,11 @@ type IsTaunt = Bool -- taunting the creature
 -- olenditel võivad olla sellised tüübid
 data MinionType = Beast | Murloc 
                 deriving (Show, Eq, Ord, Enum, Read)
+
+-- Heroes colors
+data Color = Red | Blue 
+                deriving (Show, Eq, Ord, Enum, Read)
+
 
 data Effect = OnPlay     [EventEffect]  -- effekt kaardi käimisel
             | UntilDeath [EventEffect]  -- effekt mis kestab välja käimisest kuni olendi surmani
@@ -81,6 +88,37 @@ readDeck name
     --then putStrLn (show (z))
     --else putStrLn "Null" 
     return y
+
+cardToGame card @(a, b, c)
+  = do
+    let t = case c of      
+              MinionCard _ _ _ isTaunt _ -> isTaunt
+              --otherwise -> True
+    putStrLn ((show) t)
+    putStrLn ((show) c)
+    let z = (a, b, c, Red::Color, 0 :: HealthPoint, 0 :: AttackPoint, t :: IsTaunt) :: CardInGame
+    return z 
+
+--takeCard :: [Card] -> Card
+putCard deck
+  = do
+    let y = (head (deck :: File)) :: Card  -- take first card
+    --putStrLn ((show) y)
+    z @(a,b,c,d,e,f,g) <- cardToGame y
+    putStrLn ((show) a)
+    --putStrLn ((show) g)
+--    putStrLn (show (y))
+--    firstCard <- head (deck)
+--    putStrLn (show (firstCard))
+--    let card = cardToGame firstCard
+--    putStrLn (show (card))
+    return z
+
+game 
+  = do
+    deck1 <- readDeck "deck1.txt"
+    fcard <- putCard deck1
+    return fcard
  
 --readFromFile
 --  = do
