@@ -1,8 +1,8 @@
 module Hearthstone where
 
---import System.IO
+import System.IO
+import Data.Char
 --import Data.Array
---import Data.Char
 --import Data.Maybe
 --import Control.Monad
 
@@ -27,7 +27,7 @@ type Hero = (Color, HealthPoint)
 type Heroes = [Hero]
 
 type Crystals = Int -- hero power 1..10
-type Round = Int -- quantity of rounds which the player made
+type Turn = Int -- quantity of turns which the player made
 
 type Creature = (Name, Cost, CardType, Color, HealthPoint, AttackPoint, IsTaunt) 
 type Creatures = [Creature] 
@@ -35,7 +35,7 @@ type Creatures = [Creature]
 type CardInHand = CardType
 type CardInDeck = CardType
 
-type Player = ([CardInHand], [CardInDeck], Crystals, Round)
+type Player = ([CardInHand], [CardInDeck], Crystals, Turn)
 
 -- structure of file 
 type File = [Card] 
@@ -96,6 +96,10 @@ data Filter = AnyCreature     -- olendid
             | Any [Filter]    -- disjunktsioon: kui üks tingimus on taidetud
             deriving (Show, Eq, Ord, Read)
 
+-- show line for separate data
+showLine
+  = putStrLn "-------------------------------------------------------------------------------"
+
 -- read cards from file to deck
 readDeck name 
   = do 
@@ -112,6 +116,8 @@ readDeck name
 -- init data for start game
 game 
   = do
+    hSetBuffering stdin NoBuffering
+    hSetBuffering stdout NoBuffering
     -- read decks for players
     deck1 <- readDeck "deck1.txt" 
     deck2 <- readDeck "deck1.txt"
@@ -124,16 +130,16 @@ game
     let cardInHand2 = take 4 deck2
     let newDeck2 = drop 4 deck2
 
-    newRound (Red :: Color)
+    newTurn (Red :: Color)
              ([(Red, 30), (Blue, 30)] :: Heroes)
              ([] :: Creatures) 
-             ([cardInHand1], [newDeck1], 0 :: Crystals, 0 :: Round) 
-             ([cardInHand2], [newDeck2], 0 :: Crystals, 0 :: Round) 
+             (cardInHand1, newDeck1, 0 :: Crystals, 0 :: Turn) 
+             (cardInHand2, newDeck2, 0 :: Crystals, 0 :: Turn) 
     --fcard <- putCard deck2
     return True
 
--- start new round for player
-newRound color heroes creatures player1 player2
+-- start new turn for player
+newTurn color heroes creatures player1 player2
   = do 
     let crystals = 1
     if color == Red 
@@ -147,19 +153,69 @@ getHeroByColor color heroes
     --putStrLn (show a ++ show b)
     return x
 
+
 -- show data for player
-showTable color heroes creatures player@(cardsInHand, deck, crystals, round)
+showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
   = do
+    showLine 
+    -- show my hero health 
     myHero @(_, hp1) <- getHeroByColor color heroes
     putStrLn ("My hero HP is: " ++ show hp1)
-    
+
+    -- show enemy hero health     
     enemyHero @(_, hp2) <- getHeroByColor (next color) heroes
     putStrLn ("Enemy hero HP is: "  ++ show hp1)
+    
+    -- show my creatures
+    putStrLn ("My creatures is: " ++  ((show.length) creatures)) -- ! need after set filter on creatures by color
 
-    putStr "My creatures is: "
-    putStrLn ((show.length) creatures)
+    -- show my cards in hand
+    putStrLn ("My cards in hand is: " ++ ((show.length) cardsInHand))
+    mapM_ print cardsInHand
+
+    -- init allowed actions
+    let 
+      allowedActions = do 
+        [0] ++ 
+          if (length cardsInHand > 0) -- ! need after check cost cards if all cost cards > crystals then False
+             then [1]
+             else [] 
+          ++ 
+          if (length creatures > 0)  -- ! need after set filter on creatures by color!!!
+             then [1]
+             else []
+
+    -- ask from player choice
+    showMainActions allowedActions
     return True
 
+showMainActions allowedActions
+  = do 
+    showLine 
+    putStrLn "Please make your choice:"
+    if (elem 1 allowedActions) 
+       then putStrLn "1 - Play card"
+       else putStr ""
+    if (elem 2 allowedActions) 
+       then putStrLn "2 - Attack"
+       else putStr ""
+    putStrLn "0 - End turn"
+    readAction allowedActions
+    return True
+
+readAction allowedActions
+  = do 
+    let 
+      getAction = do
+        c <- getChar
+        let d = ord (c) - 48
+        if (elem d allowedActions)
+        then return d
+        else getAction
+    hSetEcho stdout False
+    action <- getAction
+    hSetEcho stdout True
+    return action
 
 cardToGame card @(a, b, c)
   = do
