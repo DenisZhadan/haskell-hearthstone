@@ -145,6 +145,7 @@ newTurn color heroes creatures player1 player2
     if color == Red 
     then showTable color heroes creatures player1
     else showTable color heroes creatures player2
+    newTurn (next color) heroes creatures player1 player2
     return True
 
 getHeroByColor color heroes
@@ -160,7 +161,7 @@ showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
     showLine 
     -- show my hero health 
     myHero @(_, hp1) <- getHeroByColor color heroes
-    putStrLn ("My hero HP is: " ++ show hp1)
+    putStrLn ("My hero("++show color ++") HP is: " ++ show hp1)
 
     -- show enemy hero health     
     enemyHero @(_, hp2) <- getHeroByColor (next color) heroes
@@ -186,8 +187,10 @@ showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
              else []
 
     -- ask from player choice
-    showMainActions allowedActions
-    return True
+    result <- showMainActions allowedActions
+    case result of
+      0 -> return True
+    return False
 
 showMainActions allowedActions
   = do 
@@ -199,9 +202,9 @@ showMainActions allowedActions
     if (elem 2 allowedActions) 
        then putStrLn "2 - Attack"
        else putStr ""
-    putStrLn "0 - End turn"
-    readAction allowedActions
-    return True
+    putStrLn "0 - End turn"  
+    result <- readAction allowedActions
+    return result
 
 readAction allowedActions
   = do 
@@ -210,7 +213,9 @@ readAction allowedActions
         c <- getChar
         let d = ord (c) - 48
         if (elem d allowedActions)
-        then return d
+        then do
+          putStrLn ""
+          return d
         else getAction
     hSetEcho stdout False
     action <- getAction
