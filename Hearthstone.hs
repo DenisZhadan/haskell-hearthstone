@@ -182,7 +182,7 @@ showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
              else [] 
           ++ 
           if (length creatures > 0)  -- ! need after set filter on creatures by color!!!
-             then [1]
+             then [2]
              else []
 
     -- ask from player choice
