@@ -1,4 +1,20 @@
-[ ("Boulderfist Ogre"
+[ ("Test 1a"
+, 1
+, MinionCard [] 2 1 False Nothing),
+
+("Test 1b"
+, 1
+, MinionCard [] 1 2 False Nothing),
+
+("Test 2a"
+, 2
+, MinionCard [] 2 3 False Nothing),
+
+("Test 2b"
+, 2
+, MinionCard [] 3 2 False Nothing),
+
+("Boulderfist Ogre"
 , 6
 , MinionCard [] 6 7 False Nothing),
 

@@ -11,13 +11,37 @@ Denis Zhadan
 2014-11-05
 -}
 
+-- heroes colors
+data Color = Red | Blue deriving (Show, Eq, Ord, Enum, Read)
+
+-- get another color - need for easy code
+next :: Color -> Color
+next Red = Blue
+next Blue = Red
+
+-- hero
+type Hero = (Color, HealthPoint)
+--data Hero = Color HealthPoint
+--          deriving (Show, Eq, Ord, Read)
+
+type Heroes = [Hero]
+
+type Crystals = Int -- hero power 1..10
+type Round = Int -- quantity of rounds which the player made
+
+type Creature = (Name, Cost, CardType, Color, HealthPoint, AttackPoint, IsTaunt) 
+type Creatures = [Creature] 
+
+type CardInHand = CardType
+type CardInDeck = CardType
+
+type Player = ([CardInHand], [CardInDeck], Crystals, Round)
+
 -- structure of file 
 type File = [Card] 
 type Card = (Name, Cost, CardType)
 type Name = String
 type Cost = Int
-
-type CardInGame = (Name, Cost, CardType, Color, HealthPoint, AttackPoint, IsTaunt) 
 
 -- on kahte tüüpi kaarte: olendid ja loitsud
 type Deck = [CardType]
@@ -32,11 +56,6 @@ type IsTaunt = Bool -- taunting the creature
 -- olenditel võivad olla sellised tüübid
 data MinionType = Beast | Murloc 
                 deriving (Show, Eq, Ord, Enum, Read)
-
--- Heroes colors
-data Color = Red | Blue 
-                deriving (Show, Eq, Ord, Enum, Read)
-
 
 data Effect = OnPlay     [EventEffect]  -- effekt kaardi käimisel
             | UntilDeath [EventEffect]  -- effekt mis kestab välja käimisest kuni olendi surmani
@@ -77,6 +96,7 @@ data Filter = AnyCreature     -- olendid
             | Any [Filter]    -- disjunktsioon: kui üks tingimus on taidetud
             deriving (Show, Eq, Ord, Read)
 
+-- read cards from file to deck
 readDeck name 
   = do 
     x <- readFile name
@@ -89,6 +109,58 @@ readDeck name
     --else putStrLn "Null" 
     return y
 
+-- init data for start game
+game 
+  = do
+    -- read decks for players
+    deck1 <- readDeck "deck1.txt" 
+    deck2 <- readDeck "deck1.txt"
+
+    -- player Red take 3 cards
+    let cardInHand1 = take 3 deck1
+    let newDeck1 = drop 3 deck1
+
+    -- player Blue take 4 cards, because second
+    let cardInHand2 = take 4 deck2
+    let newDeck2 = drop 4 deck2
+
+    newRound (Red :: Color)
+             ([(Red, 30), (Blue, 30)] :: Heroes)
+             ([] :: Creatures) 
+             ([cardInHand1], [newDeck1], 0 :: Crystals, 0 :: Round) 
+             ([cardInHand2], [newDeck2], 0 :: Crystals, 0 :: Round) 
+    --fcard <- putCard deck2
+    return True
+
+-- start new round for player
+newRound color heroes creatures player1 player2
+  = do 
+    let crystals = 1
+    if color == Red 
+    then showTable color heroes creatures player1
+    else showTable color heroes creatures player2
+    return True
+
+getHeroByColor color heroes
+  = do 
+    let x@(a,b) = head  (filter (\ (heroColor, _) -> heroColor == color) heroes)
+    --putStrLn (show a ++ show b)
+    return x
+
+-- show data for player
+showTable color heroes creatures player@(cardsInHand, deck, crystals, round)
+  = do
+    myHero @(_, hp1) <- getHeroByColor color heroes
+    putStrLn ("My hero HP is: " ++ show hp1)
+    
+    enemyHero @(_, hp2) <- getHeroByColor (next color) heroes
+    putStrLn ("Enemy hero HP is: "  ++ show hp1)
+
+    putStr "My creatures is: "
+    putStrLn ((show.length) creatures)
+    return True
+
+
 cardToGame card @(a, b, c)
   = do
     let t = case c of      
@@ -96,7 +168,7 @@ cardToGame card @(a, b, c)
               --otherwise -> True
     putStrLn ((show) t)
     putStrLn ((show) c)
-    let z = (a, b, c, Red::Color, 0 :: HealthPoint, 0 :: AttackPoint, t :: IsTaunt) :: CardInGame
+    let z = (a, b, c, Red::Color, 0 :: HealthPoint, 0 :: AttackPoint, t :: IsTaunt) :: Creature
     return z 
 
 --takeCard :: [Card] -> Card
@@ -114,11 +186,7 @@ putCard deck
 --    putStrLn (show (card))
     return z
 
-game 
-  = do
-    deck1 <- readDeck "deck1.txt"
-    fcard <- putCard deck1
-    return fcard
+
  
 --readFromFile
 --  = do
