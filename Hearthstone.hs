@@ -134,15 +134,24 @@ game
     --fcard <- putCard deck2
     return True
 
+initTurn player @(cardsInHand, cardsInDeck, crystals, turn)
+  = do
+    let newCardsInHand = cardsInHand ++ (take 1 cardsInDeck)
+    let newCardsInDeck = drop 1 cardsInDeck
+    let x = (newCardsInHand, newCardsInDeck, (if turn < 10 then turn + 1 else 10), turn + 1) :: Player
+    return x
+
 -- start new turn for player
 newTurn color heroes creatures player1 player2
-  = do 
-    let crystals = 1
-
-    result <- showTable color heroes creatures (if (color == Red) then player1 else player2)
+  = do     
+    player <- initTurn (if (color == Red) then player1 else player2)
+    --print player
+    result <- showTable color heroes creatures player
     
     case result of
-      0 -> newTurn (next color) heroes creatures player1 player2
+      0 -> newTurn (next color) heroes creatures 
+                   (if (color == Red) then player else player1)
+                   (if (color /= Red) then player else player2)
       otherwise -> return 0
 
     return 0
@@ -161,7 +170,8 @@ getCardsByCost cost cards
 -- show data for player
 showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
   = do
-    showLine 
+    showLine
+    putStrLn ("Turn: " ++ show turn ++ " You have crystals: " ++ show crystals) 
     -- show my hero health 
     myHero @(_, hp1) <- getHeroByColor color heroes
     putStrLn ("My hero("++show color ++") HP is: " ++ show hp1)
