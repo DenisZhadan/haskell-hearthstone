@@ -13,7 +13,6 @@ Denis Zhadan
 
 -- heroes colors
 data Color = Red | Blue deriving (Show, Eq, Ord, Enum, Read)
-
 -- get another color - need for easy code
 next :: Color -> Color
 next Red = Blue
@@ -23,7 +22,6 @@ next Blue = Red
 type Hero = (Color, HealthPoint)
 --data Hero = Color HealthPoint
 --          deriving (Show, Eq, Ord, Read)
-
 type Heroes = [Hero]
 
 type Crystals = Int -- hero power 1..10
@@ -32,9 +30,8 @@ type Turn = Int -- quantity of turns which the player made
 type Creature = (Name, Cost, CardType, Color, HealthPoint, AttackPoint, IsTaunt) 
 type Creatures = [Creature] 
 
-type CardInHand = CardType
-type CardInDeck = CardType
-
+type CardInHand = Card
+type CardInDeck = Card
 type Player = ([CardInHand], [CardInDeck], Crystals, Turn)
 
 -- structure of file 
@@ -44,7 +41,6 @@ type Name = String
 type Cost = Int
 
 -- on kahte tüüpi kaarte: olendid ja loitsud
-type Deck = [CardType]
 data CardType = MinionCard [Effect] HealthPoint AttackPoint IsTaunt (Maybe MinionType)
               | SpellCard [Effect]
               deriving (Show, Eq, Ord, Read)
@@ -123,18 +119,18 @@ game
     deck2 <- readDeck "deck1.txt"
 
     -- player Red take 3 cards
-    let cardInHand1 = take 3 deck1
+    let cardsInHand1 = take 3 deck1
     let newDeck1 = drop 3 deck1
 
     -- player Blue take 4 cards, because second
-    let cardInHand2 = take 4 deck2
+    let cardsInHand2 = take 4 deck2
     let newDeck2 = drop 4 deck2
 
     newTurn (Red :: Color)
              ([(Red, 30), (Blue, 30)] :: Heroes)
              ([] :: Creatures) 
-             (cardInHand1, newDeck1, 0 :: Crystals, 0 :: Turn) 
-             (cardInHand2, newDeck2, 0 :: Crystals, 0 :: Turn) 
+             (cardsInHand1, newDeck1, 0 :: Crystals, 0 :: Turn) 
+             (cardsInHand2, newDeck2, 0 :: Crystals, 0 :: Turn) 
     --fcard <- putCard deck2
     return True
 
@@ -146,6 +142,9 @@ newTurn color heroes creatures player1 player2
     then showTable color heroes creatures player1
     else showTable color heroes creatures player2
     newTurn (next color) heroes creatures player1 player2
+    -- case result of
+    -- 0 -> return True
+
     return True
 
 getHeroByColor color heroes
@@ -154,6 +153,10 @@ getHeroByColor color heroes
     --putStrLn (show a ++ show b)
     return x
 
+getCardsByCost cost cards
+  = do 
+    let x = (filter (\ (_, cardCost, _) -> cardCost <= cost) cards) :: [Card]
+    return x 
 
 -- show data for player
 showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
@@ -175,21 +178,22 @@ showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
     mapM_ print cardsInHand
 
     -- init allowed actions
+    let z = getCardsByCost 1 cardsInHand
+    showLine
+    mapM_ print z  
     let 
       allowedActions = do 
         [0] ++ 
-          if (length cardsInHand > 0) -- ! need after check cost cards if all cost cards > crystals then False
+          if (length (getCardsByCost 1 cardsInHand) > 0) -- ! need after check cost cards if all cost cards > crystals then False
              then [1]
              else [] 
-          ++ 
+          ++
           if (length creatures > 0)  -- ! need after set filter on creatures by color!!!
              then [2]
              else []
 
     -- ask from player choice
     result <- showMainActions allowedActions
-    case result of
-      0 -> return True
     return False
 
 showMainActions allowedActions
