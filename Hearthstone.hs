@@ -138,14 +138,14 @@ game
 newTurn color heroes creatures player1 player2
   = do 
     let crystals = 1
-    if color == Red 
-    then showTable color heroes creatures player1
-    else showTable color heroes creatures player2
-    newTurn (next color) heroes creatures player1 player2
-    -- case result of
-    -- 0 -> return True
 
-    return True
+    result <- showTable color heroes creatures (if (color == Red) then player1 else player2)
+    
+    case result of
+      0 -> newTurn (next color) heroes creatures player1 player2
+      otherwise -> return 0
+
+    return 0
 
 getHeroByColor color heroes
   = do 
@@ -155,7 +155,7 @@ getHeroByColor color heroes
 
 getCardsByCost cost cards
   = do 
-    let x = (filter (\ (_, cardCost, _) -> cardCost <= cost) cards) :: [Card]
+    let x = filter (\ (_, cardCost, _) -> cardCost <= cost) cards
     return x 
 
 -- show data for player
@@ -177,10 +177,9 @@ showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
     putStrLn ("My cards in hand is: " ++ ((show.length) cardsInHand))
     mapM_ print cardsInHand
 
+    showLine   
+    mapM_ print ((getCardsByCost 1 cardsInHand) ) 
     -- init allowed actions
-    let z = getCardsByCost 1 cardsInHand
-    showLine
-    mapM_ print z  
     let 
       allowedActions = do 
         [0] ++ 
@@ -194,7 +193,7 @@ showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
 
     -- ask from player choice
     result <- showMainActions allowedActions
-    return False
+    return result
 
 showMainActions allowedActions
   = do 
