@@ -146,14 +146,21 @@ newTurn color heroes creatures player1 player2
   = do     
     player <- initTurn (if (color == Red) then player1 else player2)
     --print player
-    result <- showTable color heroes creatures player
+    nowTurn color heroes creatures 
+            (if (color == Red) then player else player1)
+            (if (color /= Red) then player else player2)
+
+nowTurn color heroes creatures player1 player2
+  = do
+    result <- showTable color heroes creatures (if (color == Red) then player1 else player2)
     
     case result of
-      0 -> newTurn (next color) heroes creatures 
-                   (if (color == Red) then player else player1)
-                   (if (color /= Red) then player else player2)
-      otherwise -> return 0
-
+      0 -> do
+           newTurn (next color) heroes creatures player1 player2
+      1 -> do
+           return 0 -- putCardToTable
+      otherwise -> do 
+                   nowTurn color heroes creatures player1 player2
     return 0
 
 getHeroByColor color heroes
@@ -187,8 +194,6 @@ showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
     putStrLn ("My cards in hand is: " ++ ((show.length) cardsInHand))
     mapM_ print cardsInHand
 
-    showLine   
-    mapM_ print ((getCardsByCost 1 cardsInHand) ) 
     -- init allowed actions
     let 
       allowedActions = do 
@@ -234,6 +239,8 @@ readAction allowedActions
     action <- getAction
     hSetEcho stdout True
     return action
+
+putCardToTable = 0
 
 cardToGame card @(a, b, c)
   = do
