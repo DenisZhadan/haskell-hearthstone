@@ -27,8 +27,10 @@ type Heroes = [Hero]
 type Crystals = Int -- hero power 1..10
 type Turn = Int -- quantity of turns which the player made
 
-type Creature = (Name, Cost, CardType, Color, HealthPoint, AttackPoint, IsTaunt) 
+type Creature = (Name, Color, CreatureStatus, CardType) 
 type Creatures = [Creature] 
+
+type CreatureStatus = (HealthPoint, AttackPoint, IsTaunt)
 
 type CardInHand = Card
 type CardInDeck = Card
@@ -96,6 +98,10 @@ data Filter = AnyCreature     -- olendid
 showLine
   = putStrLn "-------------------------------------------------------------------------------"
 
+-- show small line for separate data
+showSmallLine
+  = putStrLn "---------------------"
+
 -- read cards from file to deck
 readDeck name 
   = do 
@@ -131,7 +137,6 @@ game
              ([] :: Creatures) 
              (cardsInHand1, newDeck1, 0 :: Crystals, 0 :: Turn) 
              (cardsInHand2, newDeck2, 0 :: Crystals, 0 :: Turn) 
-    --fcard <- putCard deck2
     return True
 
 initTurn player @(cardsInHand, cardsInDeck, crystals, turn)
@@ -158,7 +163,7 @@ nowTurn color heroes creatures player1 player2
       0 -> do
            newTurn (next color) heroes creatures player1 player2
       1 -> do
-           return 0 -- putCardToTable
+           putCardToTable color heroes creatures player1 player2            
       otherwise -> do 
                    nowTurn color heroes creatures player1 player2
     return 0
@@ -174,6 +179,11 @@ getCardsByCost cost cards
     let x = filter (\ (_, cardCost, _) -> cardCost <= cost) cards
     return x 
 
+isMyCreature creature color
+  = do
+    let x = filter (\ (_, creatureColor, _, _) -> creatureColor == color) creature
+    return x 
+
 -- show data for player
 showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
   = do
@@ -187,9 +197,18 @@ showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
     enemyHero @(_, hp2) <- getHeroByColor (next color) heroes
     putStrLn ("Enemy hero HP is: "  ++ show hp1)
     
+    showSmallLine
     -- show my creatures
-    putStrLn ("My creatures is: " ++  ((show.length) creatures)) -- ! need after set filter on creatures by color
+    myCreatures <- isMyCreature creatures color
+    putStrLn ("My creatures is: " ++  ((show.length) myCreatures)) 
+    mapM_ print myCreatures
 
+    -- show enemy creatures
+    enemyCreatures <- isMyCreature creatures (next color)
+    putStrLn ("Enemy creatures is: " ++  ((show.length) enemyCreatures)) 
+    mapM_ print enemyCreatures    
+
+    showSmallLine
     -- show my cards in hand
     putStrLn ("My cards in hand is: " ++ ((show.length) cardsInHand))
     mapM_ print cardsInHand
@@ -240,24 +259,37 @@ readAction allowedActions
     hSetEcho stdout True
     return action
 
-putCardToTable = 0
-
-cardToGame card @(a, b, c)
+putCardToTable color heroes creatures player1 player2
+  = do
+    let player@(cardsInHand, deck, crystals, turn) = (if (color == Red) then player1 else player2)
+    --fcard <- putCard deck2
+    let [card] = take 1 cardsInHand
+    let newCardsInHand = drop 1 cardsInHand
+    let x @(a, cost, c) = card
+    z <- cardToGame x color
+    let newCreatures = creatures ++ [z :: Creature]
+    let newPlayer = (newCardsInHand, deck, crystals - cost, turn) 
+    nowTurn color heroes newCreatures 
+            (if (color == Red) then newPlayer else player1)
+            (if (color /= Red) then newPlayer else player2)    
+            
+cardToGame card @(a, b, c) color
   = do
     let t = case c of      
               MinionCard _ _ _ isTaunt _ -> isTaunt
               --otherwise -> True
     putStrLn ((show) t)
     putStrLn ((show) c)
-    let z = (a, b, c, Red::Color, 0 :: HealthPoint, 0 :: AttackPoint, t :: IsTaunt) :: Creature
+    let z = (a, color :: Color, (0 :: HealthPoint, 0 :: AttackPoint, t :: IsTaunt), c :: CardType) :: Creature
     return z 
+{-
 
 --takeCard :: [Card] -> Card
 putCard deck
   = do
     let y = (head (deck :: File)) :: Card  -- take first card
     --putStrLn ((show) y)
-    z @(a,b,c,d,e,f,g) <- cardToGame y
+    z @(a,c,d,e,f,g) <- cardToGame y
     putStrLn ((show) a)
     --putStrLn ((show) g)
 --    putStrLn (show (y))
@@ -266,7 +298,7 @@ putCard deck
 --    let card = cardToGame firstCard
 --    putStrLn (show (card))
     return z
-
+-}
 
  
 --readFromFile

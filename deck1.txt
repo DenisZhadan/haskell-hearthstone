@@ -1,4 +1,9 @@
-[ ("Test 1a"
+[ 
+("Elven Archer"
+, 4
+, MinionCard [OnPlay [Choose [] [Health Relative (-1)]]] 4 5 False Nothing),
+
+("Test 1a"
 , 1
 , MinionCard [] 2 1 False Nothing),
 
@@ -18,9 +23,6 @@
 , 6
 , MinionCard [] 6 7 False Nothing),
 
-("Elven Archer"
-, 4
-, MinionCard [OnPlay [Choose [] [Health Relative (-1)]]] 4 5 False Nothing),
 
 ("Gnomish Inventor"
 , 4
