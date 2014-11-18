@@ -251,17 +251,32 @@ showMainActions allowedActions
     result <- readAction allowedActions
     return result
 
+isInteger s = case reads s :: [(Integer, String)] of
+  [(_, "")] -> True
+  _         -> False
+
+strToIntDef x d
+  = if (isInteger x) 
+    then read x :: Int
+    else d
+    
 readAction allowedActions
   = do 
     let 
-      getAction = do
-        c <- getChar
-        let d = ord (c) - 48
-        if (elem d allowedActions)
-        then do
-          putStrLn ""
-          return d
-        else getAction
+      getAction 
+        = do
+          s <- getLine
+          let d = strToIntDef s (-1)
+          -- putStrLn (show d)
+          if (elem d allowedActions)
+             then do
+               putStrLn ""
+               return d
+          else do
+            putStrLn ("Wrong input: '"++ s ++"'! Allowed only: " ++ (show allowedActions))
+            y <- getAction  
+            return y
+
     hSetEcho stdout False
     action <- getAction
     hSetEcho stdout True
