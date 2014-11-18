@@ -8,7 +8,7 @@ import Data.Char
 
 {-
 Denis Zhadan
-2014-11-05
+2014-11-18
 -}
 
 -- heroes colors
@@ -29,8 +29,8 @@ type Turn = Int -- quantity of turns which the player made
 
 type Creature = (Name, Color, CreatureStatus, CardType) 
 type Creatures = [Creature] 
-
-type CreatureStatus = (HealthPoint, AttackPoint, IsTaunt)
+type CanGo = Bool
+type CreatureStatus = (CanGo, HealthPoint, AttackPoint, IsTaunt)
 
 type CardInHand = Card
 type CardInDeck = Card
@@ -139,6 +139,11 @@ game
              (cardsInHand2, newDeck2, 0 :: Crystals, 0 :: Turn) 
     return True
 
+initCreatureGo [] _ = []    
+initCreatureGo (x@(name, creatureColor, (canGo, healthPoint, attackPoint, isTaunt), ctype) : xs) color
+  | creatureColor == color = (name, creatureColor, (True :: CanGo, healthPoint, attackPoint, isTaunt), ctype) : initCreatureGo xs color
+  | otherwise = x : initCreatureGo xs color
+
 initTurn player @(cardsInHand, cardsInDeck, crystals, turn)
   = do
     let newCardsInHand = cardsInHand ++ (take 1 cardsInDeck)
@@ -150,8 +155,9 @@ initTurn player @(cardsInHand, cardsInDeck, crystals, turn)
 newTurn color heroes creatures player1 player2
   = do     
     player <- initTurn (if (color == Red) then player1 else player2)
+    let newCreatures = initCreatureGo creatures color --set "Go" = True for creatures of this player
     --print player
-    nowTurn color heroes creatures 
+    nowTurn color heroes newCreatures 
             (if (color == Red) then player else player1)
             (if (color /= Red) then player else player2)
 
@@ -184,6 +190,11 @@ isMyCreature creature color
     let x = filter (\ (_, creatureColor, _, _) -> creatureColor == color) creature
     return x 
 
+isCreatureCanGo creature
+  = do
+    let x = filter (\ (_, _, (canGo, _, _, _), _) -> canGo == True) creature
+    return x 
+    
 -- show data for player
 showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
   = do
@@ -215,18 +226,14 @@ showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
 
     -- init allowed actions
     allowedCards <- ((getCardsByCost cardsInHand crystals)) --  check cost of cards <= crystals
+    allowedCreatures <- (isCreatureCanGo myCreatures) -- filter on creatures can GO
     let 
       allowedActions = do 
-        [0] ++ 
-          if (length allowedCards > 0)  
-             then [1]
-             else [] 
-          ++
-          if (length myCreatures > 0)  -- ! need after set filter on creatures by has attack
-             then [2]
-             else []
+        [0] ++ (if (length allowedCards > 0) then [1] else []) 
+        ++ (if ((length allowedCreatures) > 0) then [2] else [])
 
     -- ask from player choice
+    --print allowedActions
     result <- showMainActions allowedActions
     return result
 
@@ -312,7 +319,7 @@ cardToGame card @(a, b, c) color
               --otherwise -> True
     putStrLn ((show) t)
     putStrLn ((show) c)
-    let z = (a, color :: Color, (0 :: HealthPoint, 0 :: AttackPoint, t :: IsTaunt), c :: CardType) :: Creature
+    let z = (a, color :: Color, (False :: CanGo, 0 :: HealthPoint, 0 :: AttackPoint, t :: IsTaunt), c :: CardType) :: Creature
     return z 
 {-
 
