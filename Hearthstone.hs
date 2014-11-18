@@ -269,8 +269,14 @@ showCardsInHand (x@(name, cost, ctype) : xs) i crystals
     
 showCardsInHand _ _ _ = return []
 
+removeCardById [] _ _ = []
+removeCardById (y:ys) n i
+  | n == i    = removeCardById ys n (i + 1)
+  | otherwise = y : removeCardById ys n (i + 1)
+
 putCardToTable color heroes creatures player1 player2
   = do
+    showLine
     let player@(cardsInHand, deck, crystals, turn) = (if (color == Red) then player1 else player2)
     -- ask card number from user
     putStrLn "Please select card number:"
@@ -279,7 +285,8 @@ putCardToTable color heroes creatures player1 player2
     result <- readAction allowedActions 
 
     let card = cardsInHand !! (result - 1)
-    let newCardsInHand = drop 1 cardsInHand
+    let newCardsInHand = removeCardById cardsInHand (result - 1) 0
+
     let x @(a, cost, c) = card
     z <- cardToGame x color
     let newCreatures = creatures ++ [z :: Creature]
