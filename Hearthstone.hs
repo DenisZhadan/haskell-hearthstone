@@ -174,7 +174,7 @@ getHeroByColor color heroes
     --putStrLn (show a ++ show b)
     return x
 
-getCardsByCost cost cards
+getCardsByCost cards cost
   = do 
     let x = filter (\ (_, cardCost, _) -> cardCost <= cost) cards
     return x 
@@ -214,14 +214,15 @@ showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
     mapM_ print cardsInHand
 
     -- init allowed actions
+    allowedCards <- ((getCardsByCost cardsInHand crystals)) --  check cost of cards <= crystals
     let 
       allowedActions = do 
         [0] ++ 
-          if (length (getCardsByCost 1 cardsInHand) > 0) -- ! need after check cost cards if all cost cards > crystals then False
+          if (length allowedCards > 0)  
              then [1]
              else [] 
           ++
-          if (length creatures > 0)  -- ! need after set filter on creatures by color!!!
+          if (length myCreatures > 0)  -- ! need after set filter on creatures by has attack
              then [2]
              else []
 
@@ -259,11 +260,25 @@ readAction allowedActions
     hSetEcho stdout True
     return action
 
+showCardsInHand (x@(name, cost, ctype) : xs) i crystals
+  = do
+    putStrLn ((if (cost <= crystals) then (show i) else "X") ++ " - " ++ (show x))
+    a <- (showCardsInHand xs (i+1) crystals)
+    let b = a ++ if (cost <= crystals) then [i] else []
+    return b
+    
+showCardsInHand _ _ _ = return []
+
 putCardToTable color heroes creatures player1 player2
   = do
     let player@(cardsInHand, deck, crystals, turn) = (if (color == Red) then player1 else player2)
-    --fcard <- putCard deck2
-    let [card] = take 1 cardsInHand
+    -- ask card number from user
+    putStrLn "Please select card number:"
+    allowedActions <- showCardsInHand cardsInHand 1 crystals
+    --print allowedActions
+    result <- readAction allowedActions 
+
+    let card = cardsInHand !! (result - 1)
     let newCardsInHand = drop 1 cardsInHand
     let x @(a, cost, c) = card
     z <- cardToGame x color
