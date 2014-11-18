@@ -261,12 +261,22 @@ readAction allowedActions
     return action
 
 showCardsInHand (x@(name, cost, ctype) : xs) i crystals
-  = do
+  | cost <= crystals = do
+    putStrLn ( (show i) ++ " - " ++ (show x))
+    a <- (showCardsInHand xs (i+1) crystals)
+    let b = a ++ [i]
+    return b
+  | otherwise = do
+    putStrLn ( "X" ++ " - " ++ (show x))
+    a <- (showCardsInHand xs (i+1) crystals)
+    return a
+{-  = do
     putStrLn ((if (cost <= crystals) then (show i) else "X") ++ " - " ++ (show x))
     a <- (showCardsInHand xs (i+1) crystals)
     let b = a ++ if (cost <= crystals) then [i] else []
     return b
-    
+-}
+        
 showCardsInHand _ _ _ = return []
 
 removeCardById [] _ _ = []
