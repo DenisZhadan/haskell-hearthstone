@@ -5,11 +5,11 @@
 
 ("Test 1a"
 , 1
-, MinionCard [] 2 1 False Nothing),
+, MinionCard [] 2 11 False Nothing),
 
 ("Test 1b"
 , 1
-, MinionCard [] 1 2 False Nothing),
+, MinionCard [] 1 21 False Nothing),
 
 ("Test 2a"
 , 2

@@ -161,21 +161,42 @@ newTurn color heroes creatures player1 player2
             (if (color == Red) then player else player1)
             (if (color /= Red) then player else player2)
 
+isGameEnd heroes
+  = do
+    hero1 @(_, hp1) <- getHeroByColor Red heroes
+    hero2 @(_, hp2) <- getHeroByColor (next Red) heroes
+    if ((hp1 > 0) && (hp2 > 0)) 
+    then do 
+      return False
+    else do
+      if ((hp1 <= 0) && (hp2 <= 0)) 
+      then putStrLn "Dead heat"
+      else do
+        if ((hp2 <= 0) && (hp1 > 0)) then putStrLn "Red is won!"
+        else putStrLn "Blue is won!"
+      return True
+
 nowTurn color heroes creatures player1 player2
   = do
-    --print heroes
-    result <- showTable color heroes creatures (if (color == Red) then player1 else player2)
+    b <- isGameEnd heroes
+    if (b == True) 
+    then do 
+      --putStrLn "" 
+      return True
+    else do
+      --print heroes
+      result <- showTable color heroes creatures (if (color == Red) then player1 else player2)
     
-    case result of
-      0 -> do
-           newTurn (next color) heroes creatures player1 player2
-      1 -> do
-           putCardToTable color heroes creatures player1 player2
-      2 -> do
-           attackWithCreature color heroes creatures player1 player2
-      otherwise -> do 
-                   nowTurn color heroes creatures player1 player2
-    return 0
+      case result of
+        0 -> do
+             newTurn (next color) heroes creatures player1 player2
+        1 -> do
+             putCardToTable color heroes creatures player1 player2
+        2 -> do
+             attackWithCreature color heroes creatures player1 player2
+        otherwise -> do 
+                     nowTurn color heroes creatures player1 player2
+      return True
 
 getHeroByColor color heroes
   = do 
