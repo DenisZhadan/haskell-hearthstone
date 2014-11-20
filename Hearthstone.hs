@@ -379,21 +379,27 @@ putCardToTable color heroes creatures player1 player2
 
     let x @(a, cost, c) = card
     (z, m) <- cardToGame x color
-    if (length m > 0)
-    then print m
-    else putStr ""
-
     let newCreatures = creatures ++ z :: Creatures
     let newPlayer = (newCardsInHand, deck, crystals - cost, turn) 
-    nowTurn color heroes newCreatures 
+
+    magicEffect m color heroes newCreatures 
             (if (color == Red) then newPlayer else player1)
             (if (color /= Red) then newPlayer else player2)    
 
+magicEffect [] color heroes creatures player1 player2
+  = do nowTurn color heroes creatures player1 player2
+
+magicEffect (m : ms) color heroes creatures player1 player2
+  = do 
+    print m
+    magicEffect ms color heroes creatures player1 player2
+
+{-
 isSpellCard a
   = case a of
      SpellCard _ -> True
      _ -> False     
-
+-}
 cardToGame card @(a, b, c @(SpellCard effects)) color
   = do
     let z = [] :: Creatures
