@@ -158,6 +158,20 @@ removeCreatureDead [] = []
 removeCreatureDead (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt), ctype) : xs)
   | healthPoint <= 0 = removeCreatureDead xs
   | otherwise = x : removeCreatureDead xs  
+
+
+eventName2Int a
+  = case a of
+     OnPlay _ -> 1
+     UntilDeath _ -> 2
+     OnDamage _ -> 3
+     OnDeath _ -> 4
+     otherwise -> 0
+  
+effectsByEventNameId [] _ = []
+effectsByEventNameId (x : xs) allowed
+  | (elem (eventName2Int x) allowed) = x : effectsByEventNameId xs allowed
+  | otherwise = effectsByEventNameId xs allowed
   
 initTurn player @(cardsInHand, cardsInDeck, crystals, turn)
   = do
