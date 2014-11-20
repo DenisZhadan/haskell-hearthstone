@@ -144,10 +144,10 @@ setCreaturesCanAttack (x@(name, creatureColor, (canAttack, healthPoint, attackPo
   | creatureColor == color = (name, creatureColor, (True :: CanAttack, healthPoint, attackPoint, isTaunt), ctype) : setCreaturesCanAttack xs color
   | otherwise = x : setCreaturesCanAttack xs color
 
-setCreaturesByIdCanNotAttack [] _ = []    
-setCreaturesByIdCanNotAttack (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt), ctype) : xs) id
-  | id == 0 = (name, creatureColor, (False :: CanAttack, healthPoint, attackPoint, isTaunt), ctype) : setCreaturesByIdCanNotAttack xs (id - 1)
-  | otherwise = x : setCreaturesByIdCanNotAttack xs (id - 1)
+setCreatureByIdCanNotAttack [] _ = []    
+setCreatureByIdCanNotAttack (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt), ctype) : xs) id
+  | id == 0 = (name, creatureColor, (False :: CanAttack, healthPoint, attackPoint, isTaunt), ctype) : setCreatureByIdCanNotAttack xs (id - 1)
+  | otherwise = x : setCreatureByIdCanNotAttack xs (id - 1)
 
 initTurn player @(cardsInHand, cardsInDeck, crystals, turn)
   = do
@@ -436,7 +436,7 @@ attackWithCreature color heroes creatures player1 player2
       then do -- attack on enemy hero
         myHero <- getHeroByColor color heroes
         enemyHero @(_, hp) <- getHeroByColor (next color) heroes
-        nowTurn color ([myHero]  ++ [(next color, hp - attackPoint1)]) ((setCreaturesByIdCanNotAttack  myCreatures (attckingId - 1)) ++ enemyCreatures) player1 player2
+        nowTurn color ([myHero]  ++ [(next color, hp - attackPoint1)]) ((setCreatureByIdCanNotAttack myCreatures (attckingId - 1)) ++ enemyCreatures) player1 player2
     else do
       let y@(name, creatureColor, (_, healthPoint2, attackPoint2, _), _) = enemyCreatures !! (targetId - 1)
       nowTurn color heroes creatures player1 player2       
