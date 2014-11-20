@@ -382,17 +382,44 @@ putCardToTable color heroes creatures player1 player2
     let newCreatures = creatures ++ z :: Creatures
     let newPlayer = (newCardsInHand, deck, crystals - cost, turn) 
 
-    magicEffect m color heroes newCreatures 
+    print (getOnPlayEventEffects m)
+    magicEffect (getOnPlayEventEffects m) color heroes newCreatures 
             (if (color == Red) then newPlayer else player1)
             (if (color /= Red) then newPlayer else player2)    
 
 magicEffect [] color heroes creatures player1 player2
   = do nowTurn color heroes creatures player1 player2
 
-magicEffect (m : ms) color heroes creatures player1 player2
-  = do 
-    print m
+magicEffect (m@(x : []) : ms) color heroes creatures player1 player2
+  = do
+    --showLine
+    --print m
+    --print ms
+    print x
+    --print xs
+    --showLine
+    --case m of
+      --All x y ->
+      --Choose x y ->
+      --Random x y > 
+      --DrawCard -> putStrLn "3"
+    putStrLn "=== > < ==="
     magicEffect ms color heroes creatures player1 player2
+
+magicEffect (m@(x : xs) : ms) color heroes creatures player1 player2
+  = do
+    --showLine
+    --putStrLn "m@(x : xs) : ms" 
+    --print x
+    --print xs
+    magicEffect ([x] : xs : ms) color heroes creatures player1 player2
+
+
+getOnPlayEventEffects [] = []
+getOnPlayEventEffects (a : as)
+  = case a of
+      OnPlay b -> b : getOnPlayEventEffects as
+      _        -> getOnPlayEventEffects as
 
 {-
 isSpellCard a

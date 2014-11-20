@@ -1,11 +1,34 @@
 [ 
+("Take 3 cards"
+, 0
+, SpellCard [OnPlay [DrawCard, 
+                     DrawCard 
+                    ], 
+             OnPlay [DrawCard
+                    ]
+            ]),
+
+("SpellCard 2 "
+, 0
+, SpellCard [OnPlay [DrawCard, 
+                     Random [] [Attack Relative (1)], 
+                     Random [] [Health Relative (2)]
+                    ], 
+             OnPlay [Random [] [Attack Relative (3)]
+                    ]
+            ]),
+
 ("SpellCard 1"
 , 0
-, SpellCard [OnPlay [Choose [] [Health Relative (-1)]]]),
+, SpellCard [OnPlay [Choose [] [Health Relative (-1)]], 
+             OnPlay [Random [] [Attack Relative (-1)]]
+            ]),
 
 ("Elven Archer"
 , 0
-, MinionCard [OnPlay [Choose [] [Health Relative (-1)]]] 4 5 False Nothing),
+, MinionCard [OnPlay [Choose [] [Health Relative (-1)]],
+              OnDamage [Random [Self] [Health Relative (1)]] 
+             ] 4 5 False Nothing),
 
 ("Test 1a"
 , 1
