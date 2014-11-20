@@ -144,6 +144,11 @@ setCreaturesCanAttack (x@(name, creatureColor, (canAttack, healthPoint, attackPo
   | creatureColor == color = (name, creatureColor, (True :: CanAttack, healthPoint, attackPoint, isTaunt), ctype) : setCreaturesCanAttack xs color
   | otherwise = x : setCreaturesCanAttack xs color
 
+setCreaturesByIdCanNotAttack [] _ = []    
+setCreaturesByIdCanNotAttack (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt), ctype) : xs) id
+  | id == 0 = (name, creatureColor, (False :: CanAttack, healthPoint, attackPoint, isTaunt), ctype) : setCreaturesByIdCanNotAttack xs (id - 1)
+  | otherwise = x : setCreaturesByIdCanNotAttack xs (id - 1)
+
 initTurn player @(cardsInHand, cardsInDeck, crystals, turn)
   = do
     let newCardsInHand = cardsInHand ++ (take 1 cardsInDeck)
@@ -329,10 +334,10 @@ showCardsInHand (x@(name, cost, ctype) : xs) i crystals
         
 showCardsInHand _ _ _ = return []
 
-removeCardById [] _ _ = []
-removeCardById (y:ys) n i
-  | n == i    = removeCardById ys n (i + 1)
-  | otherwise = y : removeCardById ys n (i + 1)
+removeCardById [] _ = []
+removeCardById (y:ys) i
+  | i == 0 = removeCardById ys (i - 1)
+  | otherwise = y : removeCardById ys (i - 1)
 
 putCardToTable color heroes creatures player1 player2
   = do
@@ -345,7 +350,7 @@ putCardToTable color heroes creatures player1 player2
     result <- readAction allowedActions 
 
     let card = cardsInHand !! (result - 1)
-    let newCardsInHand = removeCardById cardsInHand (result - 1) 0
+    let newCardsInHand = removeCardById cardsInHand (result - 1)
 
     let x @(a, cost, c) = card
     z <- cardToGame x color
@@ -431,8 +436,7 @@ attackWithCreature color heroes creatures player1 player2
       then do -- attack on enemy hero
         myHero <- getHeroByColor color heroes
         enemyHero @(_, hp) <- getHeroByColor (next color) heroes
-        --myCreatures ++ enemyCreatures
-        nowTurn color ([myHero]  ++ [(next color, hp - attackPoint1)]) creatures player1 player2
+        nowTurn color ([myHero]  ++ [(next color, hp - attackPoint1)]) ((setCreaturesByIdCanNotAttack  myCreatures (attckingId - 1)) ++ enemyCreatures) player1 player2
     else do
       let y@(name, creatureColor, (_, healthPoint2, attackPoint2, _), _) = enemyCreatures !! (targetId - 1)
       nowTurn color heroes creatures player1 player2       
