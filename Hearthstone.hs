@@ -378,7 +378,11 @@ putCardToTable color heroes creatures player1 player2
     let newCardsInHand = removeCardById cardsInHand (result - 1)
 
     let x @(a, cost, c) = card
-    z <- cardToGame x color
+    (z, m) <- cardToGame x color
+    if (length m > 0)
+    then print m
+    else putStr ""
+
     let newCreatures = creatures ++ z :: Creatures
     let newPlayer = (newCardsInHand, deck, crystals - cost, turn) 
     nowTurn color heroes newCreatures 
@@ -390,23 +394,24 @@ isSpellCard a
      SpellCard _ -> True
      _ -> False     
 
-cardToGame card @(a, b, c @(SpellCard _)) color
+cardToGame card @(a, b, c @(SpellCard effects)) color
   = do
-    putStrLn "SpellCard tomorrow finish!!!"
     let z = [] :: Creatures
-    return z
+    let m = effectsByEventNameId effects [1]
+    return (z, m)
 {-
   | isSpellCard c = do
 --  | otherwise = do
     --otherwise -> True
 -}
 
-cardToGame card @(a, b, c @(MinionCard _ hp ap isTaunt _)) color   
+cardToGame card @(a, b, c @(MinionCard effects hp ap isTaunt _)) color   
   = do
-    putStrLn ((show) isTaunt)
-    putStrLn ((show) c)
+    --putStrLn ((show) isTaunt)
+    --putStrLn ((show) c)
     let z = [(a, color :: Color, (False :: CanAttack, hp :: HealthPoint, ap :: AttackPoint, isTaunt :: IsTaunt), c :: CardType)] :: Creatures
-    return z 
+    let m = effectsByEventNameId effects [1]
+    return (z, m) 
 
 showCreaturesAsAttacker (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt), ctype) : xs) i
   | (canAttack == True) = do

@@ -1,6 +1,10 @@
 [ 
+("SpellCard 1"
+, 0
+, SpellCard [OnPlay [Choose [] [Health Relative (-1)]]]),
+
 ("Elven Archer"
-, 4
+, 0
 , MinionCard [OnPlay [Choose [] [Health Relative (-1)]]] 4 5 False Nothing),
 
 ("Test 1a"
