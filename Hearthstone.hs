@@ -163,13 +163,16 @@ newTurn color heroes creatures player1 player2
 
 nowTurn color heroes creatures player1 player2
   = do
+    --print heroes
     result <- showTable color heroes creatures (if (color == Red) then player1 else player2)
     
     case result of
       0 -> do
            newTurn (next color) heroes creatures player1 player2
       1 -> do
-           putCardToTable color heroes creatures player1 player2            
+           putCardToTable color heroes creatures player1 player2
+      2 -> do
+           attackWithCreature color heroes creatures player1 player2
       otherwise -> do 
                    nowTurn color heroes creatures player1 player2
     return 0
@@ -194,6 +197,11 @@ isCreatureCanGo creature
   = do
     let x = filter (\ (_, _, (canGo, _, _, _), _) -> canGo == True) creature
     return x 
+
+isCreatureTaunt creature
+  = do
+    let x = filter (\ (_, _, (_, _, _, isTaunt), _) -> isTaunt == True) creature
+    return x 
     
 -- show data for player
 showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
@@ -206,7 +214,7 @@ showTable color heroes creatures player@(cardsInHand, deck, crystals, turn)
 
     -- show enemy hero health     
     enemyHero @(_, hp2) <- getHeroByColor (next color) heroes
-    putStrLn ("Enemy hero HP is: "  ++ show hp1)
+    putStrLn ("Enemy hero HP is: "  ++ show hp2)
     
     showSmallLine
     -- show my creatures
@@ -321,38 +329,96 @@ putCardToTable color heroes creatures player1 player2
 
     let x @(a, cost, c) = card
     z <- cardToGame x color
-    let newCreatures = creatures ++ [z :: Creature]
+    let newCreatures = creatures ++ z :: Creatures
     let newPlayer = (newCardsInHand, deck, crystals - cost, turn) 
     nowTurn color heroes newCreatures 
             (if (color == Red) then newPlayer else player1)
             (if (color /= Red) then newPlayer else player2)    
-            
-cardToGame card @(a, b, c) color
-  = do
-    let t = case c of      
-              MinionCard _ _ _ isTaunt _ -> isTaunt
-              --otherwise -> True
-    putStrLn ((show) t)
-    putStrLn ((show) c)
-    let z = (a, color :: Color, (False :: CanGo, 0 :: HealthPoint, 0 :: AttackPoint, t :: IsTaunt), c :: CardType) :: Creature
-    return z 
-{-
 
---takeCard :: [Card] -> Card
-putCard deck
+isSpellCard a
+  = case a of
+     SpellCard _ -> True
+     _ -> False     
+
+cardToGame card @(a, b, c @(SpellCard _)) color
   = do
-    let y = (head (deck :: File)) :: Card  -- take first card
-    --putStrLn ((show) y)
-    z @(a,c,d,e,f,g) <- cardToGame y
-    putStrLn ((show) a)
-    --putStrLn ((show) g)
---    putStrLn (show (y))
---    firstCard <- head (deck)
---    putStrLn (show (firstCard))
---    let card = cardToGame firstCard
---    putStrLn (show (card))
+    putStrLn "SpellCard tomorrow finish!!!"
+    let z = [] :: Creatures
     return z
+{-
+  | isSpellCard c = do
+--  | otherwise = do
+    --otherwise -> True
 -}
+
+cardToGame card @(a, b, c @(MinionCard _ hp ap isTaunt _)) color   
+  = do
+    putStrLn ((show) isTaunt)
+    putStrLn ((show) c)
+    let z = [(a, color :: Color, (False :: CanGo, hp :: HealthPoint, ap :: AttackPoint, isTaunt :: IsTaunt), c :: CardType)] :: Creatures
+    return z 
+
+showCreaturesAsAttacker (x@(name, creatureColor, (canGo, healthPoint, attackPoint, isTaunt), ctype) : xs) i
+  | (canGo == True) = do
+    putStrLn ( (show i) ++ " - " ++ (show x))
+    a <- (showCreaturesAsAttacker xs (i+1))
+    let b = a ++ [i]
+    return b
+  | otherwise = do
+    putStrLn ( "X" ++ " - " ++ (show x))
+    a <- (showCreaturesAsAttacker xs (i+1))
+    return a
+       
+showCreaturesAsAttacker _ _ = return []
+
+showTargetAsDefender (x@(name, creatureColor, (canGo, healthPoint, attackPoint, isTaunt), ctype) : xs) i onlyTaunt
+  | ((isTaunt == False) && (onlyTaunt)) = do
+    putStrLn ( "X" ++ " - " ++ (show x))
+    a <- (showTargetAsDefender xs (i+1) onlyTaunt)
+    return a
+  | otherwise = do
+    putStrLn ( (show i) ++ " - " ++ (show x))
+    a <- (showTargetAsDefender xs (i+1) onlyTaunt)
+    let b = a ++ [i]
+    return b
+       
+showTargetAsDefender _ _ _ = return []
+
+attackWithCreature color heroes creatures player1 player2
+  = do
+    showLine
+    myCreatures <- isMyCreature creatures color
+    enemyCreatures <- isMyCreature creatures (next color)
+
+    -- ask creature number from user
+    putStrLn "Please select creature(attacker) number:"
+    actions1 <- showCreaturesAsAttacker myCreatures 1
+    --print actions1
+    attckingId <- readAction actions1
+
+    enemyCreaturesTaunt <- (isCreatureTaunt enemyCreatures) -- filter on creatures isTaunt
+    putStrLn "Please select target(defender) number:"
+    let a = if ((length enemyCreaturesTaunt) > 0) then [] else [0]
+    if (elem 0 a) 
+    then putStrLn "0 - Hero"
+    else putStrLn "Enemy has taunt creatures!"
+    actions2 <- showTargetAsDefender enemyCreatures 1 ((length enemyCreaturesTaunt) > 0)
+    --print actions2
+    targetId <- readAction (a ++ actions2)
+    
+    let x@(name, creatureColor, (_, healthPoint1, attackPoint1, _), _) = myCreatures !! (attckingId - 1) 
+    if (targetId == 0)
+      then do -- attack on enemy hero
+        myHero <- getHeroByColor color heroes
+        enemyHero @(_, hp) <- getHeroByColor (next color) heroes
+        let newHeroes = [myHero]  ++ [(next color, hp - attackPoint1)]
+        --print newHeroes
+        nowTurn color newHeroes creatures player1 player2
+    else do
+      let y@(name, creatureColor, (_, healthPoint2, attackPoint2, _), _) = enemyCreatures !! (targetId - 1)
+      nowTurn color heroes creatures player1 player2       
+
+     
 
  
 --readFromFile
