@@ -139,16 +139,26 @@ game
              (cardsInHand2, newDeck2, 0 :: Crystals, 0 :: Turn) 
     return True
 
-setCreaturesCanAttack [] _ = []    
+setCreaturesCanAttack [] _ = []
 setCreaturesCanAttack (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt), ctype) : xs) color
   | creatureColor == color = (name, creatureColor, (True :: CanAttack, healthPoint, attackPoint, isTaunt), ctype) : setCreaturesCanAttack xs color
   | otherwise = x : setCreaturesCanAttack xs color
 
-setCreatureByIdCanNotAttack [] _ = []    
-setCreatureByIdCanNotAttack (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt), ctype) : xs) id
-  | id == 0 = (name, creatureColor, (False :: CanAttack, healthPoint, attackPoint, isTaunt), ctype) : setCreatureByIdCanNotAttack xs (id - 1)
-  | otherwise = x : setCreatureByIdCanNotAttack xs (id - 1)
+disableCreatureAttackById [] _ = []
+disableCreatureAttackById (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt), ctype) : xs) id
+  | id == 0 = (name, creatureColor, (False :: CanAttack, healthPoint, attackPoint, isTaunt), ctype) : disableCreatureAttackById xs (id - 1)
+  | otherwise = x : disableCreatureAttackById xs (id - 1)
 
+changeCreatureHealthById [] _ _ = []
+changeCreatureHealthById (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt), ctype) : xs) changeHealth id
+  | id == 0 = (name, creatureColor, (canAttack, (healthPoint + changeHealth), attackPoint, isTaunt), ctype) : changeCreatureHealthById xs changeHealth (id - 1)
+  | otherwise = x : changeCreatureHealthById xs changeHealth (id - 1)
+
+removeCreatureDead [] = []
+removeCreatureDead (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt), ctype) : xs)
+  | healthPoint <= 0 = removeCreatureDead xs
+  | otherwise = x : removeCreatureDead xs  
+  
 initTurn player @(cardsInHand, cardsInDeck, crystals, turn)
   = do
     let newCardsInHand = cardsInHand ++ (take 1 cardsInDeck)
@@ -181,7 +191,7 @@ isGameEnd heroes
         else putStrLn "Blue is won!"
       return True
 
-nowTurn color heroes creatures player1 player2
+nowTurn color heroes creatures0 player1 player2
   = do
     b <- isGameEnd heroes
     if (b == True) 
@@ -189,6 +199,7 @@ nowTurn color heroes creatures player1 player2
       return True
     else do
       --print heroes
+      let creatures = removeCreatureDead creatures0
       result <- showTable color heroes creatures (if (color == Red) then player1 else player2)
     
       case result of
@@ -431,15 +442,19 @@ attackWithCreature color heroes creatures player1 player2
     --print actions2
     targetId <- readAction (a ++ actions2)
     
-    let x@(name, creatureColor, (_, healthPoint1, attackPoint1, _), _) = myCreatures !! (attckingId - 1) 
+    let x@(name, creatureColor, (_, _, attackPoint1, _), _) = myCreatures !! (attckingId - 1) 
     if (targetId == 0)
       then do -- attack on enemy hero
         myHero <- getHeroByColor color heroes
         enemyHero @(_, hp) <- getHeroByColor (next color) heroes
-        nowTurn color ([myHero]  ++ [(next color, hp - attackPoint1)]) ((setCreatureByIdCanNotAttack myCreatures (attckingId - 1)) ++ enemyCreatures) player1 player2
+        nowTurn color ([myHero]  ++ [(next color, hp - attackPoint1)]) ((disableCreatureAttackById myCreatures (attckingId - 1)) ++ enemyCreatures) player1 player2
     else do
-      let y@(name, creatureColor, (_, healthPoint2, attackPoint2, _), _) = enemyCreatures !! (targetId - 1)
-      nowTurn color heroes creatures player1 player2       
+      let y@(name, creatureColor, (_, _, attackPoint2, _), _) = enemyCreatures !! (targetId - 1)
+      let newMyCreatures = changeCreatureHealthById (disableCreatureAttackById myCreatures (attckingId - 1)) (-attackPoint2) (attckingId - 1)      
+      let newEnemyCreatures = changeCreatureHealthById enemyCreatures (-attackPoint1) (targetId - 1)
+      --print newMyCreatures
+      --print attackPoint2 
+      nowTurn color heroes (newMyCreatures ++ newEnemyCreatures) player1 player2       
 
      
 
