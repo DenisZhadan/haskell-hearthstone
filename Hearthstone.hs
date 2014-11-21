@@ -172,12 +172,17 @@ effectsByEventNameId [] _ = []
 effectsByEventNameId (x : xs) allowed
   | (elem (eventName2Int x) allowed) = x : effectsByEventNameId xs allowed
   | otherwise = effectsByEventNameId xs allowed
-  
-initTurn player @(cardsInHand, cardsInDeck, crystals, turn)
+
+takeCardFromDeck player@(cardsInHand, cardsInDeck, crystals, turn)
   = do
-    let newCardsInHand = cardsInHand ++ (take 1 cardsInDeck)
-    let newCardsInDeck = drop 1 cardsInDeck
-    let x = (newCardsInHand, newCardsInDeck, (if turn < 10 then turn + 1 else 10), turn + 1) :: Player
+    let newCardsInHand = cardsInHand ++ (take 1 cardsInDeck) 
+    let newCardsInDeck = drop 1 cardsInDeck 
+    let x = (newCardsInHand, newCardsInDeck, crystals, turn) :: Player
+    return x
+
+initTurn player@(cardsInHand, cardsInDeck, crystals, turn)
+  = do
+    x <- takeCardFromDeck (cardsInHand, cardsInDeck, if turn < 10 then turn + 1 else 10, turn + 1)
     return x
 
 -- start new turn for player
@@ -382,7 +387,7 @@ putCardToTable color heroes creatures player1 player2
     let newCreatures = creatures ++ z :: Creatures
     let newPlayer = (newCardsInHand, deck, crystals - cost, turn) 
 
-    print (getOnPlayEventEffects m)
+    --print (getOnPlayEventEffects m)
     magicEffect (getOnPlayEventEffects m) color heroes newCreatures 
             (if (color == Red) then newPlayer else player1)
             (if (color /= Red) then newPlayer else player2)    
@@ -395,16 +400,21 @@ magicEffect (m@(x : []) : ms) color heroes creatures player1 player2
     --showLine
     --print m
     --print ms
-    print x
+    --print x
     --print xs
     --showLine
-    --case m of
+    case x of
       --All x y ->
       --Choose x y ->
       --Random x y > 
-      --DrawCard -> putStrLn "3"
-    putStrLn "=== > < ==="
-    magicEffect ms color heroes creatures player1 player2
+      DrawCard -> do
+                  player <- takeCardFromDeck (if (color == Red) then player1 else player2)
+                  magicEffect ms color heroes creatures 
+                       (if (color == Red) then player else player1)
+                       (if (color /= Red) then player else player2)
+
+    --putStrLn "=== > < ==="
+    --magicEffect ms color heroes creatures player1 player2
 
 magicEffect (m@(x : xs) : ms) color heroes creatures player1 player2
   = do
