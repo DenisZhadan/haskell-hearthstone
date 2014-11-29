@@ -9,7 +9,7 @@ import System.Random (getStdRandom, randomR)
 
 {-
 Denis Zhadan
-2014-11-29
+2014-11-30
 -}
 
 -- creature colors
@@ -117,8 +117,8 @@ game
     hSetBuffering stdin NoBuffering
     hSetBuffering stdout NoBuffering
     -- read decks for players
-    deck1 <- readDeck "deck2.txt" 
-    deck2 <- readDeck "deck2.txt"
+    deck1 <- readDeck "deck1.txt" 
+    deck2 <- readDeck "deck1.txt"
    
     let takeCardsForPlayer1 = 3
     let takeCardsForPlayer2 = 4
@@ -400,7 +400,32 @@ putCardToTable color creatures player1 player2
     magicEffect (getOnPlayEventEffects m) color newCreatures 
             (if (color == Red) then newPlayer else player1)
             (if (color /= Red) then newPlayer else player2)    
+{-
+getCreaturesByFilter [] f = []
+getCreaturesByFilter (c:cs) f
+  | (filterApplies f c) == True = c : getCreaturesByFilter cs f
+  | otherwise  let x =  creatures
+    return x
+-}
+getCreaturesByFilter creatures f
+  = do 
+    let r = filter (\x -> filterApplies f x) creatures
+    return r 
 
+filterApplies :: [Filter] -> Creature -> Bool
+filterApplies [] c
+ = True
+
+filterApplies (f : fs) c@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype)
+ | f == AnyCreature = not isHero && filterApplies fs c
+ | f == AnyHero = isHero && filterApplies fs c
+ | f == AnyFriendly = creatureColor == Blue && filterApplies fs c -- ! Blue for test, after set by param
+-- | "Type" MinionType -- существа определенного типа
+-- | "Self" -- влияемое существо
+-- | f == Not = not filterApplies fs c
+-- | f == Any =  || filterApplies fs c
+ | otherwise = False
+ 
 magicEffect [] color creatures player1 player2
   = do nowTurn color creatures player1 player2
 
@@ -421,7 +446,9 @@ magicEffect (m@(x : []) : ms) color creatures player1 player2
                     magicEffect ms color creatures player1 player2
       Random x y ->do
                    --randomCreature :: [Creature] -> IO (Creature, [Creature])
-                   n <- random 0 (length(creatures) -1)
+                   qt <- getCreaturesByFilter creatures x
+                   print (qt) 
+                   --n <- random 0 (length(creatures) -1)
                    --print (creatures !! n)
                    magicEffect ms color creatures player1 player2
 
