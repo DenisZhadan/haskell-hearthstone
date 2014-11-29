@@ -237,9 +237,9 @@ getCardsByCost cards cost
     let x = filter (\ (_, cardCost, _) -> cardCost <= cost) cards
     return x 
 
-isMyCreature creature color
+getCreaturesByColor creatures color
   = do
-    let x = filter (\ (_, creatureColor, _, _) -> creatureColor == color) creature
+    let x = filter (\ (_, creatureColor, _, _) -> creatureColor == color) creatures
     return x 
 
 isCreatureCanAttack creature
@@ -268,12 +268,12 @@ showTable color creatures player@(cardsInHand, deck, crystals, turn)
     
     showSmallLine
     -- show my creatures
-    myCreatures <- isMyCreature creatures color
+    myCreatures <- getCreaturesByColor creatures color
     putStrLn ("My creatures is: " ++  ((show.length) myCreatures)) 
     mapM_ print myCreatures
 
     -- show enemy creatures
-    enemyCreatures <- isMyCreature creatures (next color)
+    enemyCreatures <- getCreaturesByColor creatures (next color)
     putStrLn ("Enemy creatures is: " ++  ((show.length) enemyCreatures)) 
     mapM_ print enemyCreatures    
 
@@ -489,8 +489,8 @@ showTargetAsDefender _ _ _ = return []
 attackWithCreature color creatures player1 player2
   = do
     showLine
-    myCreatures <- isMyCreature creatures color
-    enemyCreatures <- isMyCreature creatures (next color)
+    myCreatures <- getCreaturesByColor creatures color
+    enemyCreatures <- getCreaturesByColor creatures (next color)
 
     -- ask creature number from user
     putStrLn "Please select creature(attacker) number:"
