@@ -117,20 +117,23 @@ game
     hSetBuffering stdin NoBuffering
     hSetBuffering stdout NoBuffering
     -- read decks for players
-    deck1 <- readDeck "deck1.txt" 
-    deck2 <- readDeck "deck1.txt"
+    deck1 <- readDeck "deck2.txt" 
+    deck2 <- readDeck "deck2.txt"
+   
+    let takeCardsForPlayer1 = 4
+    let takeCardsForPlayer2 = 5
 
     -- player Red take 3 cards
-    let cardsInHand1 = take 3 deck1
-    let newDeck1 = drop 3 deck1
+    let cardsInHand1 = take takeCardsForPlayer1 deck1
+    let newDeck1 = drop takeCardsForPlayer1 deck1
 
     -- player Blue take 4 cards, because second
-    let cardsInHand2 = take 4 deck2
-    let newDeck2 = drop 4 deck2
+    let cardsInHand2 = take takeCardsForPlayer2 deck2
+    let newDeck2 = drop takeCardsForPlayer2 deck2
 
     newTurn (Red :: Color) 
-            ([("Red Hero", Red, (False, 30, 0, False, True), MinionCard [] 30 0 False Nothing),
-              ("Blue Hero", next Red, (False, 30, 0, False, True), MinionCard [] 30 0 False Nothing)] :: Creatures) 
+            ([("Red Hero", Red, (False, 30 - 10 * (takeCardsForPlayer1 - length cardsInHand1), 0, False, True), MinionCard [] 30 0 False Nothing),
+              ("Blue Hero", next Red, (False, 30 - 10 * (takeCardsForPlayer2 - length cardsInHand2), 0, False, True), MinionCard [] 30 0 False Nothing)] :: Creatures) 
             (cardsInHand1, newDeck1, 0 :: Crystals, 0 :: Turn) 
             (cardsInHand2, newDeck2, 0 :: Crystals, 0 :: Turn) 
     return True
@@ -154,6 +157,11 @@ removeCreatureDead [] = []
 removeCreatureDead (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype) : xs)
   | healthPoint <= 0 = removeCreatureDead xs
   | otherwise = x : removeCreatureDead xs  
+
+changeHeroHealthByColor [] _ _ = []
+changeHeroHealthByColor (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype) : xs) changeHealth color
+  | (creatureColor == color) && (isHero == True) = (name, creatureColor, (canAttack, (healthPoint + changeHealth), attackPoint, isTaunt, isHero), ctype) : changeCreatureHealthById xs changeHealth color
+  | otherwise = x : changeCreatureHealthById xs changeHealth color
 
 eventName2Int a
   = case a of
