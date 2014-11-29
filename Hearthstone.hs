@@ -120,8 +120,8 @@ game
     deck1 <- readDeck "deck2.txt" 
     deck2 <- readDeck "deck2.txt"
    
-    let takeCardsForPlayer1 = 4
-    let takeCardsForPlayer2 = 5
+    let takeCardsForPlayer1 = 3
+    let takeCardsForPlayer2 = 4
 
     -- player Red take 3 cards
     let cardsInHand1 = take takeCardsForPlayer1 deck1
@@ -160,8 +160,8 @@ removeCreatureDead (x@(name, creatureColor, (canAttack, healthPoint, attackPoint
 
 changeHeroHealthByColor [] _ _ = []
 changeHeroHealthByColor (x@(name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype) : xs) changeHealth color
-  | (creatureColor == color) && (isHero == True) = (name, creatureColor, (canAttack, (healthPoint + changeHealth), attackPoint, isTaunt, isHero), ctype) : changeCreatureHealthById xs changeHealth color
-  | otherwise = x : changeCreatureHealthById xs changeHealth color
+  | (creatureColor == color) && (isHero == True) = (name, creatureColor, (canAttack, (healthPoint + changeHealth), attackPoint, isTaunt, isHero), ctype) : changeHeroHealthByColor xs changeHealth color
+  | otherwise = x : changeHeroHealthByColor xs changeHealth color
 
 eventName2Int a
   = case a of
@@ -176,25 +176,31 @@ effectsByEventNameId (x : xs) allowed
   | (elem (eventName2Int x) allowed) = x : effectsByEventNameId xs allowed
   | otherwise = effectsByEventNameId xs allowed
 
-takeCardFromDeck player@(cardsInHand, cardsInDeck, crystals, turn)
+takeCardFromDeck color creatures player@(cardsInHand, cardsInDeck, crystals, turn)
   = do
-    let newCardsInHand = cardsInHand ++ (take 1 cardsInDeck) 
-    let newCardsInDeck = drop 1 cardsInDeck 
-    let x = (newCardsInHand, newCardsInDeck, crystals, turn) :: Player
-    return x
+    if (length cardsInDeck == 0)
+    then do
+      let newCreatures = changeHeroHealthByColor creatures (-10) color
+      putStrLn ("Attention: -10 points from " ++ (show color) ++ " Hero! (No cards in deck)")
+      return (player, newCreatures)
+    else do
+      let newCardsInHand = cardsInHand ++ (take 1 cardsInDeck) 
+      let newCardsInDeck = drop 1 cardsInDeck 
+      let newPlayer = (newCardsInHand, newCardsInDeck, crystals, turn) :: Player
+      return (newPlayer, creatures)
 
-initTurn player@(cardsInHand, cardsInDeck, crystals, turn)
+initTurn color creatures player@(cardsInHand, cardsInDeck, crystals, turn)
   = do
-    x <- takeCardFromDeck (cardsInHand, cardsInDeck, if turn < 10 then turn + 1 else 10, turn + 1)
+    x <- takeCardFromDeck color creatures (cardsInHand, cardsInDeck, if turn < 10 then turn + 1 else 10, turn + 1)
     return x
 
 -- start new turn for player
 newTurn color creatures player1 player2
   = do     
-    player <- initTurn (if (color == Red) then player1 else player2)
-    let newCreatures = setCreaturesCanAttack creatures color --set "CanAttack" = True for creatures of this player
+    (player, newCreatures1) <- initTurn color creatures (if (color == Red) then player1 else player2)
+    let newCreatures2 = setCreaturesCanAttack newCreatures1 color --set "CanAttack" = True for creatures of this player
     --print player
-    nowTurn color newCreatures 
+    nowTurn color newCreatures2 
             (if (color == Red) then player else player1)
             (if (color /= Red) then player else player2)
 
@@ -420,8 +426,8 @@ magicEffect (m@(x : []) : ms) color creatures player1 player2
                    magicEffect ms color creatures player1 player2
 
       DrawCard -> do
-                  player <- takeCardFromDeck (if (color == Red) then player1 else player2)
-                  magicEffect ms color creatures 
+                  (player, newCreatures) <- takeCardFromDeck color creatures (if (color == Red) then player1 else player2)
+                  magicEffect ms color newCreatures 
                        (if (color == Red) then player else player1)
                        (if (color /= Red) then player else player2)
 

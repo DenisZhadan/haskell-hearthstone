@@ -1,4 +1,14 @@
-[ ("Boulderfist Ogre2"
+[ 
+("Take 3 cards"
+, 0
+, SpellCard [OnPlay [DrawCard, 
+                     DrawCard 
+                    ], 
+             OnPlay [DrawCard
+                    ]
+            ]),
+
+("Boulderfist Ogre2"
 , 0
 , MinionCard [] 6 7 False Nothing),
 
