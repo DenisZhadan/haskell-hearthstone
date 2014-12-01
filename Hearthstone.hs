@@ -425,15 +425,15 @@ getCreaturesId (c@(creatureId, _, _, _, _) : cs)
 getRandomCreatureId :: [Creature] -> IO Int
 getRandomCreatureId creatures
   = do
-    let qt = getCreaturesId creatures
-    --print (qt) 
-    if (length qt == 0) 
+    let ids = getCreaturesId creatures
+    --print (ids) 
+    if (length ids == 0) 
     then do
       return (-1)
     else do
-      n <- random 0 (length qt -1)
-      let r = qt !! n
-      return r
+      n <- random 0 (length ids -1)
+      let id = ids !! n
+      return id
 
 {-
 getCreaturesByFilter [] f = []
