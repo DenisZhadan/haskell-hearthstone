@@ -12,7 +12,7 @@
 , 0
 , SpellCard [OnPlay [DrawCard, 
                      Random [Not[AnyCreature], AnyFriendly] [Attack Relative (1)], 
-                     Random [Any [AnyHero, AnyCreature]] [Health Relative (2)]
+                     Random [Type Murloc] [Health Relative (2)]
                     ], 
              OnPlay [Random [Any [AnyHero, AnyCreature], Not[AnyFriendly]] [Attack Relative (3)]
                     ]
@@ -32,11 +32,11 @@
 
 ("Test 1a"
 , 1
-, MinionCard [] 2 11 False Nothing),
+, MinionCard [] 2 11 False (Just Beast)),
 
 ("Test 1b"
 , 1
-, MinionCard [] 1 21 False Nothing),
+, MinionCard [] 1 21 False (Just Murloc)),
 
 ("Test 2a"
 , 2

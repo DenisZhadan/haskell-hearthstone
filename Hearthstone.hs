@@ -9,7 +9,7 @@ import System.Random (getStdRandom, randomR)
 
 {-
 Denis Zhadan
-2014-11-30
+2014-12-01
 -}
 
 -- creature colors
@@ -447,7 +447,7 @@ getCreaturesByFilter creatures f creatureSelfId color
   = do 
     let r = filter (\x -> filterApplies f x creatureSelfId color True) creatures
     return r 
-
+    
 filterApplies :: [Filter] -> Creature -> Int -> Color -> Bool -> Bool
 filterApplies [] _ _ _ _ = True
 
@@ -461,9 +461,8 @@ filterApplies (AnyFriendly : fs) c@(_, _, creatureColor, _, _) creatureSelfId co
   = (if isConjunction then (&&) else (||)) (creatureColor == color) (filterApplies fs c creatureSelfId color isConjunction)
 
 filterApplies (Type minionType : fs) c@(_, _, _, _, MinionCard _ _ _ _ creatureType) creatureSelfId color isConjunction
---  = minionType == creatureType && filterApplies fs c creatureSelfId color isConjunction
-  = filterApplies fs c creatureSelfId color isConjunction
-  
+  = (if isConjunction then (&&) else (||)) (Just minionType == creatureType) (filterApplies fs c creatureSelfId color isConjunction)
+
 filterApplies (Self : fs) c@(creatureId, _, _, _, _) creatureSelfId color isConjunction
   = (if isConjunction then (&&) else (||)) (creatureId == creatureSelfId) (filterApplies fs c creatureSelfId color isConjunction)
 
