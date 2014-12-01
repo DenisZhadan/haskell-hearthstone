@@ -426,7 +426,7 @@ getRandomCreatureId :: [Creature] -> IO Int
 getRandomCreatureId creatures
   = do
     let ids = getCreaturesId creatures
-    --print (ids) 
+    print (ids) 
     if (length ids == 0) 
     then do
       return (-1)
@@ -445,21 +445,33 @@ getCreaturesByFilter (c:cs) f
 
 getCreaturesByFilter creatures f creatureSelfId color
   = do 
-    let r = filter (\x -> filterApplies f x creatureSelfId color) creatures
+    let r = filter (\x -> filterApplies f x creatureSelfId color True) creatures
     return r 
 
-filterApplies :: [Filter] -> Creature -> Int -> Color -> Bool
-filterApplies [] _ _ _ = True
+filterApplies :: [Filter] -> Creature -> Int -> Color -> Bool -> Bool
+filterApplies [] _ _ _ _ = True
 
-filterApplies (f : fs) c@(creatureId, name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype) creatureSelfId color
- | f == AnyCreature = not isHero && filterApplies fs c creatureSelfId color
- | f == AnyHero = isHero && filterApplies fs c creatureSelfId color
- | f == AnyFriendly = creatureColor == color && filterApplies fs c creatureSelfId color
--- | "Type" MinionType -- существа определенного типа
- | f == Self = creatureId == creatureSelfId && filterApplies fs c creatureSelfId color
--- | f == Not = not filterApplies fs c creatureSelfId color
--- | f == Any =  || filterApplies fs c creatureSelfId color
- | otherwise = False
+filterApplies (AnyCreature : fs) c@(_, _, _, (_, _, _, _, isHero), _) creatureSelfId color isConjunction
+  = (if isConjunction then (&&) else (||)) (not isHero) (filterApplies fs c creatureSelfId color isConjunction)
+
+filterApplies (AnyHero : fs) c@(_, _, _, (_, _, _, _, isHero), _) creatureSelfId color isConjunction
+  = (if isConjunction then (&&) else (||)) isHero (filterApplies fs c creatureSelfId color isConjunction)
+
+filterApplies (AnyFriendly : fs) c@(_, _, creatureColor, _, _) creatureSelfId color isConjunction
+  = (if isConjunction then (&&) else (||)) (creatureColor == color) (filterApplies fs c creatureSelfId color isConjunction)
+
+filterApplies (Type minionType : fs) c@(_, _, _, _, MinionCard _ _ _ _ creatureType) creatureSelfId color isConjunction
+--  = minionType == creatureType && filterApplies fs c creatureSelfId color isConjunction
+  = filterApplies fs c creatureSelfId color isConjunction
+  
+filterApplies (Self : fs) c@(creatureId, _, _, _, _) creatureSelfId color isConjunction
+  = (if isConjunction then (&&) else (||)) (creatureId == creatureSelfId) (filterApplies fs c creatureSelfId color isConjunction)
+
+filterApplies (Not f : fs) c creatureSelfId color isConjunction
+  = (if isConjunction then (&&) else (||)) (not(filterApplies f c creatureSelfId color True)) (filterApplies fs c creatureSelfId color isConjunction)
+
+filterApplies (Any f : fs) c creatureSelfId color isConjunction
+  = (if isConjunction then (&&) else (||)) (filterApplies f c creatureSelfId color False) (filterApplies fs c creatureSelfId color isConjunction)
  
 magicEffect [] creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
   = do nowTurn color creatures player1 player2 creatureMaxId onUntilDeaths
@@ -482,7 +494,7 @@ magicEffect (m@(x : []) : ms) creatureSelfId color creatures player1 player2 cre
       Random x y ->do
                    qt <- getCreaturesByFilter creatures x creatureSelfId color
                    creatureId <- getRandomCreatureId qt
-                   --print creatureId
+                   print creatureId
                    --let newCreatures = appliesCreatureEffectById creatures y creatureId
                    magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
 

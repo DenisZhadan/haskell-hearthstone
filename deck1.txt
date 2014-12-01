@@ -11,10 +11,10 @@
 ("SpellCard 2 "
 , 0
 , SpellCard [OnPlay [DrawCard, 
-                     Random [AnyCreature] [Attack Relative (1)], 
-                     Random [AnyFriendly] [Health Relative (2)]
+                     Random [Not[AnyCreature], AnyFriendly] [Attack Relative (1)], 
+                     Random [Any [AnyHero, AnyCreature]] [Health Relative (2)]
                     ], 
-             OnPlay [Random [AnyHero] [Attack Relative (3)]
+             OnPlay [Random [Any [AnyHero, AnyCreature], Not[AnyFriendly]] [Attack Relative (3)]
                     ]
             ]),
 
