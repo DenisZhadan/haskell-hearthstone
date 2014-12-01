@@ -417,6 +417,24 @@ putCardToTable color creatures player1 player2 creatureMaxId onUntilDeaths
             (if (color == Red) then newPlayer else player1)
             (if (color /= Red) then newPlayer else player2) 
             newCreatureMaxId onUntilDeaths
+
+getCreaturesId [] = []
+getCreaturesId (c@(creatureId, _, _, _, _) : cs)
+  = creatureId : getCreaturesId cs
+
+getRandomCreatureId :: [Creature] -> IO Int
+getRandomCreatureId creatures
+  = do
+    let qt = getCreaturesId creatures
+    --print (qt) 
+    if (length qt == 0) 
+    then do
+      return (-1)
+    else do
+      n <- random 0 (length qt -1)
+      let r = qt !! n
+      return r
+
 {-
 getCreaturesByFilter [] f = []
 getCreaturesByFilter (c:cs) f
@@ -424,6 +442,7 @@ getCreaturesByFilter (c:cs) f
   | otherwise  let x =  creatures
     return x
 -}
+
 getCreaturesByFilter creatures f creatureSelfId color
   = do 
     let r = filter (\x -> filterApplies f x creatureSelfId color) creatures
@@ -461,11 +480,10 @@ magicEffect (m@(x : []) : ms) creatureSelfId color creatures player1 player2 cre
                     --chooseCreature :: [Creature] -> IO (Creature, [Creature])
                     magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
       Random x y ->do
-                   --randomCreature :: [Creature] -> IO (Creature, [Creature])
                    qt <- getCreaturesByFilter creatures x creatureSelfId color
-                   print (qt) 
-                   --n <- random 0 (length(creatures) -1)
-                   --print (creatures !! n)
+                   creatureId <- getRandomCreatureId qt
+                   --print creatureId
+                   --let newCreatures = appliesCreatureEffect creatures y
                    magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
 
       DrawCard -> do
