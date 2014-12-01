@@ -408,7 +408,7 @@ putCardToTable color creatures player1 player2 creatureMaxId onUntilDeaths
     let x @(a, cost, c) = card
     (z, m) <- cardToGame x color creatureMaxId onUntilDeaths
     let newCreatures = creatures ++ z :: Creatures
-    let newCreatureMaxId = if length z > 0 then creatureMaxId + 1 else creatureMaxId
+    let newCreatureMaxId = if length z > 0 then creatureMaxId + length z else creatureMaxId
     let newPlayer = (newCardsInHand, deck, crystals - cost, turn) 
 
     --print (getOnPlayEventEffects m)
@@ -483,7 +483,7 @@ magicEffect (m@(x : []) : ms) creatureSelfId color creatures player1 player2 cre
                    qt <- getCreaturesByFilter creatures x creatureSelfId color
                    creatureId <- getRandomCreatureId qt
                    --print creatureId
-                   --let newCreatures = appliesCreatureEffect creatures y
+                   --let newCreatures = appliesCreatureEffectById creatures y creatureId
                    magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
 
       DrawCard -> do
