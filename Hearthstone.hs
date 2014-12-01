@@ -412,7 +412,8 @@ putCardToTable color creatures player1 player2 creatureMaxId onDeaths
     let newPlayer = (newCardsInHand, deck, crystals - cost, turn) 
 
     --print (getOnPlayEventEffects m)
-    magicEffect (getOnPlayEventEffects m) color newCreatures 
+    magicEffect (getOnPlayEventEffects m) (if length z > 0 then creatureMaxId else -1) 
+            color newCreatures 
             (if (color == Red) then newPlayer else player1)
             (if (color /= Red) then newPlayer else player2) 
             newCreatureMaxId onDeaths
@@ -423,29 +424,28 @@ getCreaturesByFilter (c:cs) f
   | otherwise  let x =  creatures
     return x
 -}
-getCreaturesByFilter creatures f
+getCreaturesByFilter creatures f creatureSelfId color
   = do 
-    let r = filter (\x -> filterApplies f x) creatures
+    let r = filter (\x -> filterApplies f x creatureSelfId color) creatures
     return r 
 
-filterApplies :: [Filter] -> Creature -> Bool
-filterApplies [] c
- = True
+filterApplies :: [Filter] -> Creature -> Int -> Color -> Bool
+filterApplies [] _ _ _ = True
 
-filterApplies (f : fs) c@(creatureId, name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype)
- | f == AnyCreature = not isHero && filterApplies fs c
- | f == AnyHero = isHero && filterApplies fs c
- | f == AnyFriendly = creatureColor == Blue && filterApplies fs c -- ! Blue for test, after set by param
+filterApplies (f : fs) c@(creatureId, name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype) creatureSelfId color
+ | f == AnyCreature = not isHero && filterApplies fs c creatureSelfId color
+ | f == AnyHero = isHero && filterApplies fs c creatureSelfId color
+ | f == AnyFriendly = creatureColor == color && filterApplies fs c creatureSelfId color
 -- | "Type" MinionType -- существа определенного типа
--- | "Self" -- влияемое существо
--- | f == Not = not filterApplies fs c
--- | f == Any =  || filterApplies fs c
+ | f == Self = creatureId == creatureSelfId && filterApplies fs c creatureSelfId color
+-- | f == Not = not filterApplies fs c creatureSelfId color
+-- | f == Any =  || filterApplies fs c creatureSelfId color
  | otherwise = False
  
-magicEffect [] color creatures player1 player2 creatureMaxId onDeaths
+magicEffect [] creatureSelfId color creatures player1 player2 creatureMaxId onDeaths
   = do nowTurn color creatures player1 player2 creatureMaxId onDeaths
 
-magicEffect (m@(x : []) : ms) color creatures player1 player2 creatureMaxId onDeaths
+magicEffect (m@(x : []) : ms) creatureSelfId color creatures player1 player2 creatureMaxId onDeaths
   = do
     --showLine
     --print m
@@ -456,35 +456,35 @@ magicEffect (m@(x : []) : ms) color creatures player1 player2 creatureMaxId onDe
     case x of
       All x y -> do
                  --filterApplies :: Creature -> Filter -> Creature -> Bool
-                 magicEffect ms color creatures player1 player2 creatureMaxId onDeaths
+                 magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onDeaths
       Choose x y ->do
                     --chooseCreature :: [Creature] -> IO (Creature, [Creature])
-                    magicEffect ms color creatures player1 player2 creatureMaxId onDeaths
+                    magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onDeaths
       Random x y ->do
                    --randomCreature :: [Creature] -> IO (Creature, [Creature])
-                   qt <- getCreaturesByFilter creatures x
+                   qt <- getCreaturesByFilter creatures x creatureSelfId color
                    print (qt) 
                    --n <- random 0 (length(creatures) -1)
                    --print (creatures !! n)
-                   magicEffect ms color creatures player1 player2 creatureMaxId onDeaths
+                   magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onDeaths
 
       DrawCard -> do
                   (player, newCreatures) <- takeCardFromDeck color creatures (if (color == Red) then player1 else player2)
-                  magicEffect ms color newCreatures 
+                  magicEffect ms creatureSelfId color newCreatures 
                        (if (color == Red) then player else player1)
                        (if (color /= Red) then player else player2)
                        creatureMaxId onDeaths
 
     --putStrLn "=== > < ==="
-    --magicEffect ms color creatures player1 player2 creatureMaxId onDeaths
+    --magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onDeaths
     
-magicEffect (m@(x : xs) : ms) color creatures player1 player2 creatureMaxId onDeaths
+magicEffect (m@(x : xs) : ms) creatureSelfId color creatures player1 player2 creatureMaxId onDeaths
   = do
     --showLine
     --putStrLn "m@(x : xs) : ms" 
     --print x
     --print xs
-    magicEffect ([x] : xs : ms) color creatures player1 player2 creatureMaxId onDeaths
+    magicEffect ([x] : xs : ms) creatureSelfId color creatures player1 player2 creatureMaxId onDeaths
 
 
 getOnPlayEventEffects [] = []
