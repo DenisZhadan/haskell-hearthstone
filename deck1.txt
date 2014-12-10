@@ -8,13 +8,13 @@
                     ]
             ]),
 
-("SpellCard 2 "
+("SpellCard 2"
 , 0
 , SpellCard [OnPlay [DrawCard, 
-                     Random [Not[AnyCreature], AnyFriendly] [Attack Relative (1)], 
-                     Random [Type Murloc] [Health Relative (2)]
+                     Random [Not[AnyCreature], AnyFriendly] [Health Absolute (1)], 
+                     Random [AnyCreature] [Taunt True]
                     ], 
-             OnPlay [Random [Any [AnyHero, AnyCreature], Not[AnyFriendly]] [Attack Relative (3)]
+             OnPlay [Random [Any [AnyHero, AnyCreature], Not[AnyFriendly]] [Health Absolute (3)]
                     ]
             ]),
 

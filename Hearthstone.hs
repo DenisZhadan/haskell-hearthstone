@@ -426,7 +426,7 @@ getRandomCreatureId :: [Creature] -> IO Int
 getRandomCreatureId creatures
   = do
     let ids = getCreaturesId creatures
-    print (ids) 
+    --print (ids) 
     if (length ids == 0) 
     then do
       return (-1)
@@ -435,11 +435,36 @@ getRandomCreatureId creatures
       let id = ids !! n
       return id
 
+
+showCreaturesAsChoose (c@(creatureId, _, _, _, _) : cs)
+  = do
+    putStrLn ( (show creatureId) ++ " - " ++ (show c))
+    a <- showCreaturesAsChoose cs
+    let b = a ++ [creatureId]
+    return b
+       
+showCreaturesAsChoose _ = return []
+
+--getChooseCreatureId :: [Creature] -> IO Int
+getChooseCreatureId creatures creatureEffect
+  = do
+    --print (ids) 
+    if (length creatures == 0) 
+    then do
+      return (-1)
+    else do
+      putStrLn (show creatureEffect)
+      putStrLn "Please select creature number:"
+      ids <- showCreaturesAsChoose creatures
+      --print actions1
+      chooseId <- readAction ids
+      return chooseId
+
 {-
 getCreaturesByFilter [] f = []
 getCreaturesByFilter (c:cs) f
   | (filterApplies f c) == True = c : getCreaturesByFilter cs f
-  | otherwise  let x =  creatures
+  | otherwise let x =  creatures
     return x
 -}
 
@@ -447,6 +472,23 @@ getCreaturesByFilter creatures f creatureSelfId color
   = do 
     let r = filter (\x -> filterApplies f x creatureSelfId color True) creatures
     return r 
+
+appliesCreatureEffect creature [] = creature
+appliesCreatureEffect creature@(creatureId, name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype) (Health changeType points: es)  
+  | (changeType == Relative) = appliesCreatureEffect (creatureId, name, creatureColor, (canAttack, healthPoint + points, attackPoint, isTaunt, isHero), ctype) es
+  | otherwise = appliesCreatureEffect (creatureId, name, creatureColor, (canAttack, points, attackPoint, isTaunt, isHero), ctype) es
+  
+appliesCreatureEffect creature@(creatureId, name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype) (Attack changeType points: es)  
+  | (changeType == Relative) = appliesCreatureEffect (creatureId, name, creatureColor, (canAttack, healthPoint, attackPoint + points, isTaunt, isHero), ctype) es
+  | otherwise = appliesCreatureEffect (creatureId, name, creatureColor, (canAttack, healthPoint, points, isTaunt, isHero), ctype) es
+
+appliesCreatureEffect creature@(creatureId, name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype) (Taunt setTaunt: es)  
+  = appliesCreatureEffect (creatureId, name, creatureColor, (canAttack, healthPoint, attackPoint, setTaunt, isHero), ctype) es
+  
+appliesCreatureEffectByIds [] _ _ = []
+appliesCreatureEffectByIds (x@(creatureId, _, _, _, _) : xs) creatureEffects ids
+  | (elem creatureId ids) = appliesCreatureEffect x creatureEffects : appliesCreatureEffectByIds xs creatureEffects ids
+  | otherwise = x : appliesCreatureEffectByIds xs creatureEffects ids
     
 filterApplies :: [Filter] -> Creature -> Int -> Color -> Bool -> Bool
 filterApplies [] _ _ _ _ = True
@@ -485,18 +527,23 @@ magicEffect (m@(x : []) : ms) creatureSelfId color creatures player1 player2 cre
     --showLine
     case x of
       All x y -> do
-                 --filterApplies :: Creature -> Filter -> Creature -> Bool
-                 magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
+                    --filterApplies :: Creature -> Filter -> Creature -> Bool
+                    qt <- getCreaturesByFilter creatures x creatureSelfId color
+                    let ids = getCreaturesId qt
+                    let newCreatures = appliesCreatureEffectByIds creatures y ids
+                    magicEffect ms creatureSelfId color newCreatures player1 player2 creatureMaxId onUntilDeaths
       Choose x y ->do
-                    --chooseCreature :: [Creature] -> IO (Creature, [Creature])
-                    magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
+                    qt <- getCreaturesByFilter creatures x creatureSelfId color
+                    creatureId <- getChooseCreatureId qt y
+                    --print creatureId
+                    let newCreatures = appliesCreatureEffectByIds creatures y [creatureId] 
+                    magicEffect ms creatureSelfId color newCreatures player1 player2 creatureMaxId onUntilDeaths
       Random x y ->do
                    qt <- getCreaturesByFilter creatures x creatureSelfId color
                    creatureId <- getRandomCreatureId qt
-                   print creatureId
-                   --let newCreatures = appliesCreatureEffectById creatures y creatureId
-                   magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
-
+                   --print creatureId
+                   let newCreatures = appliesCreatureEffectByIds creatures y [creatureId]
+                   magicEffect ms creatureSelfId color newCreatures player1 player2 creatureMaxId onUntilDeaths                   
       DrawCard -> do
                   (player, newCreatures) <- takeCardFromDeck color creatures (if (color == Red) then player1 else player2)
                   magicEffect ms creatureSelfId color newCreatures 
