@@ -412,11 +412,12 @@ putCardToTable color creatures player1 player2 creatureMaxId onUntilDeaths
     let newPlayer = (newCardsInHand, deck, crystals - cost, turn) 
 
     --print (getOnPlayEventEffects m)
-    magicEffect (getOnPlayEventEffects m) (if length z > 0 then creatureMaxId else -1) 
+    (rCreatures, rPlayer1, rPlayer2) <- magicEffect (getOnPlayEventEffects m) (if length z > 0 then creatureMaxId else -1) 
             color newCreatures 
             (if (color == Red) then newPlayer else player1)
             (if (color /= Red) then newPlayer else player2) 
             newCreatureMaxId onUntilDeaths
+    nowTurn color rCreatures rPlayer1 rPlayer2 creatureMaxId onUntilDeaths
 
 getCreaturesId [] = []
 getCreaturesId (c@(creatureId, _, _, _, _) : cs)
@@ -515,7 +516,8 @@ filterApplies (Any f : fs) c creatureSelfId color isConjunction
   = (if isConjunction then (&&) else (||)) (filterApplies f c creatureSelfId color False) (filterApplies fs c creatureSelfId color isConjunction)
  
 magicEffect [] creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
-  = do nowTurn color creatures player1 player2 creatureMaxId onUntilDeaths
+  = do
+    return (creatures, player1, player2)
 
 magicEffect (m@(x : []) : ms) creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
   = do
@@ -543,16 +545,13 @@ magicEffect (m@(x : []) : ms) creatureSelfId color creatures player1 player2 cre
                    creatureId <- getRandomCreatureId qt
                    --print creatureId
                    let newCreatures = appliesCreatureEffectByIds creatures y [creatureId]
-                   magicEffect ms creatureSelfId color newCreatures player1 player2 creatureMaxId onUntilDeaths                   
+                   magicEffect ms creatureSelfId color newCreatures player1 player2 creatureMaxId onUntilDeaths
       DrawCard -> do
                   (player, newCreatures) <- takeCardFromDeck color creatures (if (color == Red) then player1 else player2)
                   magicEffect ms creatureSelfId color newCreatures 
                        (if (color == Red) then player else player1)
                        (if (color /= Red) then player else player2)
                        creatureMaxId onUntilDeaths
-
-    --putStrLn "=== > < ==="
-    --magicEffect ms creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
     
 magicEffect (m@(x : xs) : ms) creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
   = do
@@ -560,8 +559,9 @@ magicEffect (m@(x : xs) : ms) creatureSelfId color creatures player1 player2 cre
     --putStrLn "m@(x : xs) : ms" 
     --print x
     --print xs
+    --print creatures
     magicEffect ([x] : xs : ms) creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
-
+    --print creatures
 
 getOnPlayEventEffects [] = []
 getOnPlayEventEffects (a : as)

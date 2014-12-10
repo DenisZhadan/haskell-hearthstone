@@ -2,7 +2,8 @@
 ("Take 3 cards"
 , 0
 , SpellCard [OnPlay [DrawCard, 
-                     DrawCard 
+                     Random [Not[AnyFriendly]] [Health Absolute (1)],
+                     DrawCard
                     ], 
              OnPlay [DrawCard
                     ]
