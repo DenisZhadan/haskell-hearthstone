@@ -470,7 +470,7 @@ getCreaturesByFilter (c:cs) f
 
 getCreaturesByFilter creatures f creatureSelfId color
   = do 
-    let r = filter (\x -> filterApplies f x creatureSelfId color True) creatures
+    let r = filter (\x@(_, _, _, (_, healthPoint, _, _, _), _) -> (&&) (healthPoint > 0) (filterApplies f x creatureSelfId color True) ) creatures
     return r 
 
 appliesCreatureEffect creature [] = creature
