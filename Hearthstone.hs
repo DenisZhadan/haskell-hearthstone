@@ -561,7 +561,12 @@ magicEffect (m@(x : xs) : ms) creatureSelfId color creatures player1 player2 cre
     --print xs
     --print creatures
     magicEffect ([x] : xs : ms) creatureSelfId color creatures player1 player2 creatureMaxId onUntilDeaths
-    --print creatures
+
+getOnDeathEventEffects [] = []
+getOnDeathEventEffects (a : as)
+  = case a of
+      OnDeath b -> b : getOnDeathEventEffects as
+      _         -> getOnDeathEventEffects as
 
 getOnPlayEventEffects [] = []
 getOnPlayEventEffects (a : as)
