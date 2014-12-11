@@ -2,7 +2,7 @@
 ("Take 3 cards"
 , 0
 , SpellCard [OnPlay [DrawCard, 
-                     Random [Not[AnyFriendly]] [Health Absolute (1)],
+                     Random [Not[AnyFriendly], AnyCreature] [Health Relative (-2)],
                      DrawCard
                     ], 
              OnPlay [DrawCard
@@ -29,7 +29,9 @@
 ("Elven Archer"
 , 0
 , MinionCard [
-              OnDamage [Random [AnyCreature, Not[AnyFriendly]] [Health Relative (-1)]] 
+              OnDamage [
+                        All [Any [AnyHero, AnyCreature], Not[AnyFriendly]] [Health Relative (-1)]
+                       ] 
              ] 4 1 False Nothing),
 
 ("Test 1a"

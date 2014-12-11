@@ -388,6 +388,7 @@ showCardsInHand (x@(name, cost, ctype) : xs) i crystals
 showCardsInHand _ _ _ = return []
 
 removeCardById [] _ = []
+
 removeCardById (y:ys) i
   | i == 0 = removeCardById ys (i - 1)
   | otherwise = y : removeCardById ys (i - 1)
@@ -417,25 +418,36 @@ putCardToTable color creatures player1 player2 creatureMaxId onUntilDeaths
             (if (color == Red) then newPlayer else player1)
             (if (color /= Red) then newPlayer else player2) 
             onUntilDeaths []
-    nowTurn color rCreatures rPlayer1 rPlayer2 newCreatureMaxId onUntilDeaths
+    (tCreatures, tPlayer1, tPlayer2) <- onDamageEvent rListDamage rCreatures rPlayer1 rPlayer2 onUntilDeaths
+    nowTurn color tCreatures tPlayer1 tPlayer2 newCreatureMaxId onUntilDeaths
+
+forDamageList _ [] = []
+forDamageList [] _ = []
+
+forDamageList (x : xs) (id : [])
+  = case x of
+     Health Relative points -> (if points < 0 then [id] else []) ++ forDamageList xs (id : [])
+     otherwise -> forDamageList xs (id : [])
+
+forDamageList effects (id : ys@(_:_))
+  = (forDamageList effects (id : [])) ++ forDamageList effects ys
 
 getCreaturesId [] = []
 getCreaturesId (c@(creatureId, _, _, _, _) : cs)
   = creatureId : getCreaturesId cs
 
-getRandomCreatureId :: [Creature] -> IO Int
+getRandomCreatureId :: [Creature] -> IO [Int]
 getRandomCreatureId creatures
   = do
     let ids = getCreaturesId creatures
     --print (ids) 
     if (length ids == 0) 
     then do
-      return (-1)
+      return []
     else do
       n <- random 0 (length ids -1)
       let id = ids !! n
-      return id
-
+      return [id]
 
 showCreaturesAsChoose (c@(creatureId, _, _, _, _) : cs)
   = do
@@ -446,20 +458,20 @@ showCreaturesAsChoose (c@(creatureId, _, _, _, _) : cs)
        
 showCreaturesAsChoose _ = return []
 
---getChooseCreatureId :: [Creature] -> IO Int
+--getChooseCreatureId :: [Creature] -> IO [Int]
 getChooseCreatureId creatures creatureEffect
   = do
     --print (ids) 
     if (length creatures == 0) 
     then do
-      return (-1)
+      return []
     else do
       putStrLn (show creatureEffect)
       putStrLn "Please select creature number:"
       ids <- showCreaturesAsChoose creatures
       --print actions1
       chooseId <- readAction ids
-      return chooseId
+      return [chooseId]
 
 {-
 getCreaturesByFilter [] f = []
@@ -529,24 +541,25 @@ magicEffect (m@(x : []) : ms) creatureSelfId color creatures player1 player2 onU
     --showLine
     case x of
       All x y -> do
-                    --filterApplies :: Creature -> Filter -> Creature -> Bool
                     qt <- getCreaturesByFilter creatures x creatureSelfId color
                     let ids = getCreaturesId qt
                     let newCreatures = appliesCreatureEffectByIds creatures y ids
-                    magicEffect ms creatureSelfId color newCreatures player1 player2 onUntilDeaths listDamage
+                    putStrLn ("Effect: " ++ show y ++ " from creature nr. "++ show creatureSelfId ++ " to creature nr. " ++ show ids)
+                    magicEffect ms creatureSelfId color newCreatures player1 player2 onUntilDeaths (listDamage ++ forDamageList y ids)
       Choose x y ->do
                     qt <- getCreaturesByFilter creatures x creatureSelfId color
                     creatureId <- getChooseCreatureId qt y
                     --print creatureId
-                    let newCreatures = appliesCreatureEffectByIds creatures y [creatureId] 
-                    magicEffect ms creatureSelfId color newCreatures player1 player2 onUntilDeaths listDamage
+                    putStrLn ("Effect: " ++ show y ++ " from creature nr. "++ show creatureSelfId ++ " to creature nr. " ++ show creatureId)
+                    let newCreatures = appliesCreatureEffectByIds creatures y creatureId
+                    magicEffect ms creatureSelfId color newCreatures player1 player2 onUntilDeaths (listDamage ++ forDamageList y creatureId)
       Random x y ->do
                    qt <- getCreaturesByFilter creatures x creatureSelfId color
                    creatureId <- getRandomCreatureId qt
                    --print creatureId
                    putStrLn ("Effect: " ++ show y ++ " from creature nr. "++ show creatureSelfId ++ " to creature nr. " ++ show creatureId)
-                   let newCreatures = appliesCreatureEffectByIds creatures y [creatureId]
-                   magicEffect ms creatureSelfId color newCreatures player1 player2 onUntilDeaths (listDamage ++ if creatureId >=0 then [creatureId] else [])
+                   let newCreatures = appliesCreatureEffectByIds creatures y creatureId
+                   magicEffect ms creatureSelfId color newCreatures player1 player2 onUntilDeaths (listDamage ++ forDamageList y creatureId)
       DrawCard -> do
                   (player, newCreatures) <- takeCardFromDeck color creatures (if (color == Red) then player1 else player2)
                   magicEffect ms creatureSelfId color newCreatures 
