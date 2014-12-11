@@ -161,10 +161,15 @@ changeCreatureHealthById (x@(creatureId, name, creatureColor, (canAttack, health
   | id == creatureId = (creatureId, name, creatureColor, (canAttack, (healthPoint + changeHealth), attackPoint, isTaunt, isHero), ctype) : changeCreatureHealthById xs changeHealth id
   | otherwise = x : changeCreatureHealthById xs changeHealth id
 
-removeCreatureDead [] = []
-removeCreatureDead (x@(creatureId, name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype) : xs)
-  | healthPoint <= 0 = removeCreatureDead xs
-  | otherwise = x : removeCreatureDead xs  
+removeCreatureById [] _ = []
+removeCreatureById (x@(creatureId, _, _, (_, healthPoint, _, _, isHero), _) : xs) id
+  | creatureId == id = removeCreatureById xs id
+  | otherwise = x : removeCreatureById xs id
+  
+getIsDeathCreatureIds [] _ = []
+getIsDeathCreatureIds (x@(creatureId, _, _, (_, healthPoint, _, _, isHero), _) : xs) inList
+  | (healthPoint <= 0) && (not (elem creatureId inList)) && (isHero == False) = creatureId : getIsDeathCreatureIds xs inList
+  | otherwise = getIsDeathCreatureIds xs inList
 
 changeHeroHealthByColor [] _ _ = []
 changeHeroHealthByColor (x@(creatureId, name, creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype) : xs) changeHealth color
@@ -228,26 +233,32 @@ isGameEnd creatures
         else putStrLn "Blue is won!"
       return True
 
-nowTurn color creatures0 player1 player2 creatureMaxId onUntilDeaths
+nowTurn color creatures_ player1_ player2_ creatureMaxId onUntilDeaths
   = do 
-    b <- isGameEnd creatures0
+    b <- isGameEnd creatures_
     if (b == True) 
     then do
       return True
     else do
-      let creatures = removeCreatureDead creatures0
-      result <- showTable color creatures (if (color == Red) then player1 else player2)
+      --let creatures = removeCreatureDead creatures_
+      (creatures, player1, player2) <- onDeathEvent (getIsDeathCreatureIds creatures_ []) creatures_ player1_ player2_ onUntilDeaths
+      b2 <- isGameEnd creatures
+      if (b2 == True) 
+      then do
+        return True
+      else do
+        result <- showTable color creatures (if (color == Red) then player1 else player2)
     
-      case result of
-        0 -> do
-             newTurn (next color) creatures player1 player2 creatureMaxId onUntilDeaths
-        1 -> do
-             putCardToTable color creatures player1 player2 creatureMaxId onUntilDeaths
-        2 -> do
-             attackWithCreature color creatures player1 player2 creatureMaxId onUntilDeaths
-        otherwise -> do 
+        case result of
+          0 -> do
+               newTurn (next color) creatures player1 player2 creatureMaxId onUntilDeaths
+          1 -> do
+               putCardToTable color creatures player1 player2 creatureMaxId onUntilDeaths
+          2 -> do
+               attackWithCreature color creatures player1 player2 creatureMaxId onUntilDeaths
+          otherwise -> do 
                      nowTurn color creatures player1 player2 creatureMaxId onUntilDeaths
-      return True
+        --return True
 
 getHeroByColor color creatures
   = do 
@@ -388,7 +399,6 @@ showCardsInHand (x@(name, cost, ctype) : xs) i crystals
 showCardsInHand _ _ _ = return []
 
 removeCardById [] _ = []
-
 removeCardById (y:ys) i
   | i == 0 = removeCardById ys (i - 1)
   | otherwise = y : removeCardById ys (i - 1)
@@ -698,6 +708,20 @@ onDamageEvent (id : listDamage) creatures player1 player2 onUntilDeaths
     --print (getOnDamageEventEffects effects)
     (rCreatures, rPlayer1, rPlayer2, rListDamage) <- magicEffect (getOnDamageEventEffects effects) id creatureColor creatures player1 player2 onUntilDeaths listDamage
     onDamageEvent rListDamage rCreatures rPlayer1 rPlayer2 onUntilDeaths
+    
+onDeathEvent [] creatures player1 player2 onUntilDeaths
+  = do
+    return (creatures, player1, player2)
+
+onDeathEvent (id : listDeath) creatures player1 player2 onUntilDeaths
+  = do
+    (_, name, creatureColor, (_, _, _, _, _), (MinionCard effects _ _ _ _)) <- getCreatureById creatures id
+    --print (getOnDeathEventEffects effects)
+    (rCreatures, rPlayer1, rPlayer2, rListDamage) <- magicEffect 
+                           (getOnDeathEventEffects effects) id creatureColor 
+                           (removeCreatureById creatures id) player1 player2 onUntilDeaths []
+    (tCreatures, tPlayer1, tPlayer2) <- onDamageEvent rListDamage rCreatures rPlayer1 rPlayer2 onUntilDeaths
+    onDeathEvent (listDeath ++ getIsDeathCreatureIds tCreatures listDeath) tCreatures tPlayer1 tPlayer2 onUntilDeaths    
 
  
 --readFromFile

@@ -29,10 +29,10 @@
 ("Elven Archer"
 , 0
 , MinionCard [
-              OnDamage [
-                        All [Any [AnyHero, AnyCreature], Not[AnyFriendly]] [Health Relative (-1)]
+              OnDeath [
+                        All [Any [AnyHero], Not[AnyFriendly]] [Health Relative (-30)]
                        ] 
-             ] 4 1 False Nothing),
+             ] 4 5 False Nothing),
 
 ("Test 1a"
 , 1
