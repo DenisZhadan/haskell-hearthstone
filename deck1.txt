@@ -22,14 +22,15 @@
 ("SpellCard 1"
 , 0
 , SpellCard [OnPlay [Choose [] [Health Relative (-1)]], 
+	     OnPlay [Choose [] [Health Relative (-1)]],
              OnPlay [Random [] [Attack Relative (-1)]]
             ]),
 
 ("Elven Archer"
 , 0
-, MinionCard [OnPlay [Choose [] [Health Relative (-1)]],
-              OnDamage [Random [Self] [Health Relative (1)]] 
-             ] 4 5 False Nothing),
+, MinionCard [
+              OnDamage [Random [AnyCreature, Not[AnyFriendly]] [Health Relative (-1)]] 
+             ] 4 1 False Nothing),
 
 ("Test 1a"
 , 1
