@@ -93,7 +93,7 @@ data Filter = AnyCreature     -- olendid
 
 type FromCreatureId = Int
 type IsUntil = Bool
-type LogEvent = (FromCreatureId, IsUntil, [CreatureEffect])
+type LogEvent = (FromCreatureId, IsUntil, CreatureEffect)
 type LogEvents = [LogEvent]
 
 -- show line for separate data
