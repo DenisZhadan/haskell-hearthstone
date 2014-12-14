@@ -11,7 +11,7 @@ import System.Environment
 
 {-
 Denis Zhadan
-2014-12-11
+2014-12-14
 -}
 
 -- creature colors
@@ -71,7 +71,8 @@ data CreatureEffect = Health Type HealthPoint  -- elupunktide muutmine
                     | Attack Type AttackPoint  -- ründepunktide muutmine
                     | Taunt  IsTaunt           -- mõnituse muutmine
                     deriving (Show, Eq, Ord, Read)
-{-
+
+{- just I tried to write SHOWer
 instance Show CreatureEffect where
   show (Health t p) = "Health: " ++ show t ++ " " ++ show p
   show (Attack t p) = "Attack: " ++ show t ++ " " ++ show p 
@@ -93,6 +94,7 @@ data Filter = AnyCreature     -- olendid
             | Any [Filter]    -- disjunktsioon: kui üks tingimus on taidetud
             deriving (Show, Eq, Ord, Read)
 
+-- types for calculation after UntilDeath event
 type FromCreatureId = Int
 type IsUntil = Bool
 type LogEvent = (FromCreatureId, IsUntil, CreatureEffect)
@@ -148,36 +150,43 @@ game fileName1 fileName2
             creatureMaxId
     return True
 
+-- mark that creature can attack
 setCreaturesCanAttack [] _ = []
 setCreaturesCanAttack (x@((creatureId, name), creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype, logEvents) : xs) color
   | (creatureColor == color) = ((creatureId, name), creatureColor, (True :: CanAttack, healthPoint, attackPoint, isTaunt, isHero), ctype, logEvents) : setCreaturesCanAttack xs color
   | otherwise = x : setCreaturesCanAttack xs color
 
+-- mark that creature can not attack
 disableCreatureAttackById [] _ = []
 disableCreatureAttackById (x@((creatureId, name), creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype, logEvents) : xs) id
   | id == creatureId = ((creatureId, name), creatureColor, (False :: CanAttack, healthPoint, attackPoint, isTaunt, isHero), ctype, logEvents) : disableCreatureAttackById xs id
   | otherwise = x : disableCreatureAttackById xs id
 
+-- change creature health after attack/defense
 changeCreatureHealthById [] _ _ _ = []
 changeCreatureHealthById (x@((creatureId, name), creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype, logEvents) : xs) changeHealth id fromId
   | id == creatureId = ((creatureId, name), creatureColor, (canAttack, (healthPoint + changeHealth), attackPoint, isTaunt, isHero), ctype, logEvents ++ [(fromId, False, Health Relative changeHealth)]) : changeCreatureHealthById xs changeHealth id fromId
   | otherwise = x : changeCreatureHealthById xs changeHealth id fromId
 
+-- remove creature from list
 removeCreatureById [] _ = []
 removeCreatureById (x@((creatureId, _), _, (_, healthPoint, _, _, isHero), _, logEvents) : xs) id
   | creatureId == id = removeCreatureById xs id
   | otherwise = x : removeCreatureById xs id
-  
+
+--get list of death creatures
 getIsDeathCreatureIds [] _ = []
 getIsDeathCreatureIds (x@((creatureId, _), _, (_, healthPoint, _, _, isHero), _, logEvents) : xs) inList
   | (healthPoint <= 0) && (not (elem creatureId inList)) && (isHero == False) = creatureId : getIsDeathCreatureIds xs inList
   | otherwise = getIsDeathCreatureIds xs inList
 
+-- damage for Hero, can be set by color, used if no cards in deck, -10 points from hero
 changeHeroHealthByColor [] _ _ = []
 changeHeroHealthByColor (x@((creatureId, name), creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype, logEvents) : xs) changeHealth color
-  | (creatureColor == color) && (isHero == True) = ((creatureId, name), creatureColor, (canAttack, (healthPoint + changeHealth), attackPoint, isTaunt, isHero), ctype, logEvents) : changeHeroHealthByColor xs changeHealth color
+  | (creatureColor == color) && (isHero == True) = ((creatureId, name), creatureColor, (canAttack, (healthPoint + changeHealth), attackPoint, isTaunt, isHero), ctype, logEvents ++ [(-1, False, Health Relative changeHealth)]) : changeHeroHealthByColor xs changeHealth color
   | otherwise = x : changeHeroHealthByColor xs changeHealth color
 
+-- for group events by ID(Int)
 eventName2Int a
   = case a of
      OnPlay _ -> 1
@@ -185,12 +194,14 @@ eventName2Int a
      OnDamage _ -> 3
      OnDeath _ -> 4
      otherwise -> 0
-  
+
+--  takes only specified events  defined by parameter
 effectsByEventNameId [] _ = []
 effectsByEventNameId (x : xs) allowed
   | (elem (eventName2Int x) allowed) = x : effectsByEventNameId xs allowed
   | otherwise = effectsByEventNameId xs allowed
 
+-- take card from deck
 takeCardFromDeck color creatures player@(cardsInHand, cardsInDeck, crystals, turn)
   = do
     if (length cardsInDeck == 0)
@@ -204,6 +215,7 @@ takeCardFromDeck color creatures player@(cardsInHand, cardsInDeck, crystals, tur
       let newPlayer = (newCardsInHand, newCardsInDeck, crystals, turn) :: Player
       return (newPlayer, creatures)
 
+-- take 1 card from deck, before each new turn
 initTurn color creatures player@(cardsInHand, cardsInDeck, crystals, turn)
   = do
     x <- takeCardFromDeck color creatures (cardsInHand, cardsInDeck, if turn < 10 then turn + 1 else 10, turn + 1)
@@ -220,6 +232,7 @@ newTurn color creatures player1 player2 creatureMaxId
             (if (color /= Red) then player else player2) 
             creatureMaxId
 
+-- verify: is game over?
 isGameEnd creatures
   = do
     hero1 @((_, _), _, (_, hp1, _, _, _), _, _) <- getHeroByColor Red creatures
@@ -235,6 +248,7 @@ isGameEnd creatures
         else putStrLn "Blue is won!"
       return True
 
+-- just one step in player turn
 nowTurn color creatures_ player1_ player2_ creatureMaxId
   = do 
     b <- isGameEnd creatures_
@@ -262,32 +276,38 @@ nowTurn color creatures_ player1_ player2_ creatureMaxId
                      nowTurn color creatures player1 player2 creatureMaxId
         --return True
 
+-- get Hero by color
 getHeroByColor color creatures
   = do 
     let x = head  (filter (\ ((_, _), heroColor, (_, _, _, _, isHero), _, logEvents) -> (heroColor == color) && (isHero == True)) creatures)
     --putStrLn (show a ++ show b)
     return x
 
+-- filter cards by cost
 getCardsByCost cards cost
   = do 
     let x = filter (\ (_, cardCost, _) -> cardCost <= cost) cards
     return x 
 
+-- get creatures only for one player, filter by color
 getCreaturesByColor creatures color
   = do
     let x = filter (\ ((_, _), creatureColor, _, _, logEvents) -> creatureColor == color) creatures
     return x 
 
+-- get creature by uniq ID
 getCreatureById creatures id
   = do
     let x = head(filter (\ ((creatureId, _), _, _, _, logEvents) -> creatureId == id) creatures)  
     return x 
 
+--check, is creature can attack?
 isCreatureCanAttack creature
   = do
     let x = filter (\ ((_, _), _, (canAttack, _, attackPoint, _, _), _, logEvents) -> (canAttack == True) && (attackPoint > 0)) creature
     return x 
 
+-- is this creature has property Taunt
 isCreatureTaunt creature
   = do
     let x = filter (\ ((_, _), _, (_, _, _, isTaunt, _), _, logEvents) -> isTaunt == True) creature
@@ -336,6 +356,7 @@ showTable color creatures player@(cardsInHand, deck, crystals, turn)
     result <- showMainActions allowedActions
     return result
 
+-- show allowed actions for player
 showMainActions allowedActions
   = do 
     showLine 
@@ -350,15 +371,18 @@ showMainActions allowedActions
     result <- readAction allowedActions
     return result
 
+-- string to Int
 isInteger s = case reads s :: [(Integer, String)] of
   [(_, "")] -> True
   _         -> False
 
+-- string to Int with default value if can not convert to Int
 strToIntDef x d
   = if (isInteger x) 
     then read x :: Int
     else d
-    
+
+-- read action from player by keyboard.    
 readAction allowedActions
   = do 
     let 
@@ -381,6 +405,7 @@ readAction allowedActions
     hSetEcho stdout True
     return action
 
+-- Show cards in hand, with card ID, if ID = X then user can not use this card(isn't enough crystals)
 showCardsInHand (x@(name, cost, ctype) : xs) i crystals
   | cost <= crystals = do
     putStrLn ( (show i) ++ " - " ++ (show x))
@@ -405,6 +430,7 @@ removeCardById (y:ys) i
   | i == 0 = removeCardById ys (i - 1)
   | otherwise = y : removeCardById ys (i - 1)
 
+-- player uses the card 
 putCardToTable color creatures player1 player2 creatureMaxId
   = do
     showLine
@@ -451,10 +477,12 @@ forDamageList (x : xs) (id : [])
 forDamageList effects (id : ys@(_:_))
   = (forDamageList effects (id : [])) ++ forDamageList effects ys
 
+-- get list IDs of creatures
 getCreaturesId [] = []
 getCreaturesId (c@((creatureId, _), _, _, _, _) : cs)
   = creatureId : getCreaturesId cs
 
+-- get random creature id
 getRandomCreatureId :: [Creature] -> IO [Int]
 getRandomCreatureId creatures
   = do
@@ -468,6 +496,7 @@ getRandomCreatureId creatures
       let id = ids !! n
       return [id]
 
+-- show creatures for select by player
 showCreaturesAsChoose (c@((creatureId, _), _, _, _, _) : cs)
   = do
     putStrLn ( (show creatureId) ++ " - " ++ (show c))
@@ -500,11 +529,13 @@ getCreaturesByFilter (c:cs) f
     return x
 -}
 
+-- get creatures by filter
 getCreaturesByFilter creatures f creatureSelfId color
   = do 
     let r = filter (\x@((_, _), _, (_, healthPoint, _, _, _), _, logEvents) -> (&&) (healthPoint > 0) (filterApplies f x creatureSelfId color True) ) creatures
     return r 
 
+-- applies creature effect
 appliesCreatureEffect creature [] fromId isUntil = creature
 appliesCreatureEffect creature@((creatureId, name), creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype, logEvents) (Health changeType points: es) fromId isUntil  
   | (changeType == Relative) = appliesCreatureEffect ((creatureId, name), creatureColor, (canAttack, healthPoint + points, attackPoint, isTaunt, isHero), ctype, logEvents ++ [(fromId, isUntil, Health changeType points)]) es fromId isUntil
@@ -521,7 +552,8 @@ appliesCreatureEffectByIds [] _ _ fromId isUntil = []
 appliesCreatureEffectByIds (x@((creatureId, _), _, _, _, _) : xs) creatureEffects ids fromId isUntil
   | (elem creatureId ids) = appliesCreatureEffect x creatureEffects fromId isUntil : appliesCreatureEffectByIds xs creatureEffects ids fromId isUntil 
   | otherwise = x : appliesCreatureEffectByIds xs creatureEffects ids fromId isUntil 
-    
+
+-- filter applies    
 filterApplies :: [Filter] -> Creature -> Int -> Color -> Bool -> Bool
 filterApplies [] _ _ _ _ = True
 
@@ -545,7 +577,8 @@ filterApplies (Not f : fs) c creatureSelfId color isConjunction
 
 filterApplies (Any f : fs) c creatureSelfId color isConjunction
   = (if isConjunction then (&&) else (||)) (filterApplies f c creatureSelfId color False) (filterApplies fs c creatureSelfId color isConjunction)
- 
+
+-- set magic effect 
 magicEffect [] creatureSelfId color creatures player1 player2 listDamage eventInt
   = do
     return (creatures, player1, player2, listDamage)
@@ -585,7 +618,8 @@ magicEffect (m@(x : []) : ms) creatureSelfId color creatures player1 player2 lis
                        (if (color == Red) then player else player1)
                        (if (color /= Red) then player else player2)
                        listDamage eventInt
-    
+
+-- if present multy definitions of event types, for example [OnPlay, OnPlay, OnPlay]
 magicEffect (m@(x : xs) : ms) creatureSelfId color creatures player1 player2 listDamage eventInt
   = do
     --showLine
@@ -595,24 +629,28 @@ magicEffect (m@(x : xs) : ms) creatureSelfId color creatures player1 player2 lis
     --print creatures
     magicEffect ([x] : xs : ms) creatureSelfId color creatures player1 player2 listDamage eventInt
 
+-- get events "on play"
 getOnPlayEventEffects [] = []
 getOnPlayEventEffects (a : as)
   = case a of
       OnPlay b -> b : getOnPlayEventEffects as
       _        -> getOnPlayEventEffects as
 
+-- get events "until death"
 getUntilDeathEventEffects [] = []
 getUntilDeathEventEffects (a : as)
   = case a of
       UntilDeath b -> b : getUntilDeathEventEffects as
       _        -> getUntilDeathEventEffects as
 
+-- get events "on damage"
 getOnDamageEventEffects [] = []
 getOnDamageEventEffects (a : as)
   = case a of
       OnDamage b -> b : getOnDamageEventEffects as
       _          -> getOnDamageEventEffects as
 
+-- get events "on death"
 getOnDeathEventEffects [] = []
 getOnDeathEventEffects (a : as)
   = case a of
@@ -625,6 +663,7 @@ isSpellCard a
      SpellCard _ -> True
      _ -> False     
 -}
+-- player uses SpellCard
 cardToGame card @(a, b, c @(SpellCard effects)) color creatureMaxId
   = do
     let z = [] :: Creatures
@@ -636,6 +675,7 @@ cardToGame card @(a, b, c @(SpellCard effects)) color creatureMaxId
     --otherwise -> True
 -}
 
+-- player uses MinionCard
 cardToGame card @(a, b, c @(MinionCard effects hp ap isTaunt _)) color creatureMaxId
   = do
     --putStrLn ((show) isTaunt)
@@ -644,6 +684,7 @@ cardToGame card @(a, b, c @(MinionCard effects hp ap isTaunt _)) color creatureM
     let m = effectsByEventNameId effects [1,2]
     return (z, m) 
 
+-- show list of creatures wich can attack
 showCreaturesAsAttacker (c@((creatureId, name), creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype, logEvents) : cs)
   | (canAttack == True) && (attackPoint > 0) = do
     putStrLn ( (show creatureId) ++ " - " ++ (show c))
@@ -657,6 +698,8 @@ showCreaturesAsAttacker (c@((creatureId, name), creatureColor, (canAttack, healt
        
 showCreaturesAsAttacker _ = return []
 
+
+-- show list of creatures wich is possible to attack
 showTargetAsDefender (c@((creatureId, name), creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype, logEvents) : cs) onlyTaunt
   | ((isTaunt == False) && (onlyTaunt)) = do
     putStrLn ( "X" ++ " - " ++ (show c))
@@ -670,6 +713,7 @@ showTargetAsDefender (c@((creatureId, name), creatureColor, (canAttack, healthPo
        
 showTargetAsDefender _ _ = return []
 
+-- attack by creatrue
 attackWithCreature color creatures player1 player2 creatureMaxId
   = do
     showLine
@@ -706,13 +750,14 @@ attackWithCreature color creatures player1 player2 creatureMaxId
     --print attackPoint2 
     nowTurn color rCreatures rPlayer1 rPlayer2 creatureMaxId
 
-     
+-- get random Int in this range
 random a b 
   = do
     r <- getStdRandom ( randomR (a, b))
     let i =  r :: Int
     return i
 
+-- run on event damage
 onDamageEvent [] creatures player1 player2
   = do
     return (creatures, player1, player2)
@@ -723,7 +768,8 @@ onDamageEvent (id : listDamage) creatures player1 player2
     --print (getOnDamageEventEffects effects)
     (rCreatures, rPlayer1, rPlayer2, rListDamage) <- magicEffect (getOnDamageEventEffects effects) id creatureColor creatures player1 player2 listDamage 3
     onDamageEvent rListDamage rCreatures rPlayer1 rPlayer2
-    
+
+-- run on event death
 onDeathEvent [] creatures player1 player2
   = do
     return (creatures, player1, player2)
@@ -741,6 +787,7 @@ onDeathEvent (id : listDeath) creatures player1 player2
 
     onDeathEvent (listDeath ++ getIsDeathCreatureIds xCreatures listDeath) xCreatures tPlayer1 tPlayer2
 
+-- recalcultation (damage/bonus log, health, attack, taunt) if ends untilDeath
 updateDataFromLog [] fromId = []
 updateDataFromLog ( x@((creatureId, name), creatureColor, (canAttack, healthPoint, attackPoint, isTaunt, isHero), ctype@(MinionCard effects hp ap isT mtype), logEvents) : xs) fromId 
   = do
@@ -750,11 +797,13 @@ updateDataFromLog ( x@((creatureId, name), creatureColor, (canAttack, healthPoin
    let newIsTaunt = updateTaunt newLog isT
    ((creatureId, name), creatureColor, (canAttack, newHealth, newAttack, isTaunt, isHero), (MinionCard effects hp ap isT mtype), newLog) : updateDataFromLog xs fromId 
 
+-- remove old records from log
 updateLog [] _ = []
 updateLog (x@(id, isUntil, effect) : xs) fromId
   | (id == fromId) && (isUntil == True) = updateLog xs fromId
   | otherwise = x : updateLog xs fromId
-    
+
+-- recalculation of health points
 updateHealth [] hp = hp
 updateHealth (l@(_,_,effect) : ls) hp 
   = case effect of
@@ -762,6 +811,7 @@ updateHealth (l@(_,_,effect) : ls) hp
      Health Absolute x -> updateHealth ls x 
      otherwise -> updateHealth ls hp
 
+-- recalculation of attack points
 updateAttack [] ap = ap
 updateAttack (l@(_,_,effect) : ls) ap 
   = case effect of
@@ -769,12 +819,14 @@ updateAttack (l@(_,_,effect) : ls) ap
      Attack Absolute x -> updateAttack ls x 
      otherwise -> updateHealth ls ap
 
+-- recalculation status taunt
 updateTaunt [] isTaunt = isTaunt
 updateTaunt (l@(_,_,effect) : ls) isTaunt
   = case effect of
      Taunt x -> updateTaunt ls x 
      otherwise -> updateTaunt ls isTaunt
 
+-- try autostart for game, do not work with WinHugs :(
 main = do  
    args <- getArgs
    --mapM putStrLn args  
@@ -784,5 +836,4 @@ main = do
      if (length args == 1) 
      then game (args !! 0) ""
      else game "" ""
-
  

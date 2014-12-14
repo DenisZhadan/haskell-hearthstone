@@ -32,7 +32,7 @@
               UntilDeath [
                         All [Any [AnyCreature,AnyHero], Not[AnyFriendly]] [Health Relative (-1)]
                        ] 
-             ] 4 0 False Nothing),
+             ] 4 1 False Nothing),
 
 ("Test 1a"
 , 1
