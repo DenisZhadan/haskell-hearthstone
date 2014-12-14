@@ -29,26 +29,26 @@
 ("Elven Archer"
 , 0
 , MinionCard [
-              OnDeath [
-                        All [Any [AnyHero], Not[AnyFriendly]] [Health Relative (-30)]
+              UntilDeath [
+                        All [Any [AnyCreature,AnyHero], Not[AnyFriendly]] [Health Relative (-1)]
                        ] 
-             ] 4 5 False Nothing),
+             ] 4 0 False Nothing),
 
 ("Test 1a"
 , 1
-, MinionCard [] 2 11 False (Just Beast)),
+, MinionCard [] 4 4 False (Just Beast)),
 
 ("Test 1b"
 , 1
-, MinionCard [] 1 21 False (Just Murloc)),
+, MinionCard [] 4 1 False (Just Murloc)),
 
 ("Test 2a"
 , 2
-, MinionCard [] 2 3 False Nothing),
+, MinionCard [] 5 3 False Nothing),
 
 ("Test 2b"
 , 2
-, MinionCard [] 3 2 False Nothing),
+, MinionCard [] 5 2 False Nothing),
 
 ("Boulderfist Ogre"
 , 6
