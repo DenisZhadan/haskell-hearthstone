@@ -3,6 +3,7 @@ module Hearthstone where
 import System.IO
 import Data.Char
 import System.Random (getStdRandom, randomR)
+import System.Environment 
 --import Data.Array
 --import Data.Maybe
 --import Control.Monad
@@ -118,13 +119,13 @@ readDeck name
     return y
 
 -- init data for start game
-game 
+game fileName1 fileName2
   = do
     hSetBuffering stdin NoBuffering
     hSetBuffering stdout NoBuffering
     -- read decks for players
-    deck1 <- readDeck "deck1.txt" 
-    deck2 <- readDeck "deck1.txt"
+    deck1 <- readDeck fileName1
+    deck2 <- readDeck fileName2
    
     let takeCardsForPlayer1 = 3
     let takeCardsForPlayer2 = 4
@@ -773,26 +774,14 @@ updateTaunt (l@(_,_,effect) : ls) isTaunt
      Taunt x -> updateTaunt ls x 
      otherwise -> updateTaunt ls isTaunt
 
+main = do  
+   args <- getArgs
+   mapM putStrLn args  
+   if (length args >= 2)
+   then game (args !! 0) (args !! 1)
+   else do
+     if (length args == 1) 
+     then game (args !! 0) "deck2.txt"
+     else game "deck1.txt" "deck2.txt"
 
---readFromFile
---  = do
-    --content <- toDeck text
-    --let content = text
-    --putStr text
-    --return content
-    --    return text 
-    --y <- (read (content :: Char) :: [CardType])
-    --a <- (readFile "deck0.txt") :: IO [Char]
-    --let a = "[MinionCard [] 6 7 False Nothing,MinionCard [OnPlay [Choose [] [Health Relative (-1)]]] 4 5 False Nothing,MinionCard [OnPlay [DrawCard]] 2 4 False Nothing]" 
-    --b <- read "[MinionCard [] 6 7 False Nothing,MinionCard [OnPlay [Choose [] [Health Relative (-1)]]] 4 5 False Nothing,MinionCard [OnPlay [DrawCard]] 2 4 False Nothing]" :: [CardType]
-    --a <- readFile "deck0.txt" 
-    --b <- read c :: [CardType]
-    --return b
-
-
---main 
---d  = do
-    --content <- readFile "deck1.txt"
-    --length content
-
-    
+ 
