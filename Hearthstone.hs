@@ -4,6 +4,7 @@ import System.IO
 import Data.Char
 import System.Random (getStdRandom, randomR)
 import System.Environment 
+--import Data.List 
 --import Data.Array
 --import Data.Maybe
 --import Control.Monad
@@ -124,8 +125,8 @@ game fileName1 fileName2
     hSetBuffering stdin NoBuffering
     hSetBuffering stdout NoBuffering
     -- read decks for players
-    deck1 <- readDeck fileName1
-    deck2 <- readDeck fileName2
+    deck1 <- readDeck (if fileName1 == "" then "deck1.txt" else fileName1)
+    deck2 <- readDeck (if fileName2 == "" then "deck2.txt" else fileName2)
    
     let takeCardsForPlayer1 = 3
     let takeCardsForPlayer2 = 4
@@ -776,12 +777,12 @@ updateTaunt (l@(_,_,effect) : ls) isTaunt
 
 main = do  
    args <- getArgs
-   mapM putStrLn args  
+   --mapM putStrLn args  
    if (length args >= 2)
    then game (args !! 0) (args !! 1)
    else do
      if (length args == 1) 
-     then game (args !! 0) "deck2.txt"
-     else game "deck1.txt" "deck2.txt"
+     then game (args !! 0) ""
+     else game "" ""
 
  
